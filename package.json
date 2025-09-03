@@ -1,17 +1,13 @@
 {
-  "name": "nontonanime",
+  "name": "nontonanime-vercel",
   "version": "1.0.0",
-  "description": "Website streaming anime menggunakan Otakudesu API",
-  "main": "server.js",
   "scripts": {
+    "dev": "node server.js",
+    "build": "echo 'No build needed'",
     "start": "node server.js"
   },
   "dependencies": {
-    "axios": "^1.11.0",
-    "express": "^4.18.2",
-    "node-fetch": "^3.3.1"
-  },
-  "engines": {
-    "node": "18.x"
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12"
   }
 }
