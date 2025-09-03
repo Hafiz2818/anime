@@ -7,7 +7,20 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "axios": "^1.6.0",
+    "axios": "^1.11.0",
     "cheerio": "^1.0.0-rc.12"
-  }
+  },
+  "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hafiz2818/anime.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Hafiz2818/anime/issues"
+  },
+  "homepage": "https://github.com/Hafiz2818/anime#readme",
+  "description": ""
 }
