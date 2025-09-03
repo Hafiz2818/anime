@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NontonAnime</title>
+  <link rel="icon" href="https://twemoji.maxcdn.com/v/latest/72x72/1f4fa.png" type="image/png">
+  <link rel="stylesheet" href="/style/style.css">
+</head>
+
+<body>
+  <header>
+    <div class="navbar-top">
+      <div class="logo">
+        <a href="/">
+          <span class="logo-icon">📺</span>
+          <span class="logo-text">NontonAnime</span>
+        </a>
+      </div>
+
+      <!-- Search Desktop -->
+      <div class="search-container desktop-search">
+        <input type="text" id="searchInput" placeholder="Search anime...">
+        <button id="searchButton">Search</button>
+      </div>
+
+      <!-- Tombol Search Mobile -->
+      <button id="mobileSearchButton" class="mobile-search-btn">🔍</button>
+    </div>
+
+    <!-- Navbar Desktop -->
+    <div class="navbar-desktop">
+      <nav>
+        <ul class="nav-links">
+          <li><a href="/" data-page="home">Home</a></li>
+          <li><a href="/schedule" data-page="schedule">Schedule</a></li>
+          <li><a href="/anime" data-page="anime">All Anime</a></li>
+          <li><a href="/genres" data-page="genres">Genre</a></li>
+          <li><a href="/ongoing" data-page="ongoing">Ongoing</a></li>
+          <li><a href="/completed" data-page="completed">Completed</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Overlay Pencarian Mobile -->
+  <div class="search-overlay" id="searchOverlay">
+    <div class="search-overlay-content">
+      <div class="search-header">
+        <button id="closeSearchBtn" class="close-btn">×</button>
+        <input type="text" id="overlaySearchInput" placeholder="Cari anime..." autofocus>
+        <button id="searchIconBtn" class="search-icon-btn">🔍</button>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+  </div>
+
+  <!-- Konten Utama -->
+  <main id="content">
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Loading anime content...</p>
+    </div>
+  </main>
+
+  <!-- Mobile Bottom Navbar -->
+  <div class="mobile-navbar">
+    <a href="/ongoing" data-page="ongoing">
+      <span>🎯</span>
+      <span class="nav-text">Ongoing</span>
+    </a>
+    <a href="/schedule" data-page="schedule">
+      <span>📅</span>
+      <span class="nav-text">Schedule</span>
+    </a>
+    <a href="/" data-page="home">
+      <span>🏠</span>
+      <span class="nav-text">Home</span>
+    </a>
+    <a href="/anime" data-page="anime">
+      <span>📺</span>
+      <span class="nav-text">All Anime</span>
+    </a>
+    <a href="/genres" data-page="genres">
+      <span>🏷️</span>
+      <span class="nav-text">Genre</span>
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <p>&copy; 2025 NontonAnime. Semua hak dilindungi.</p>
+    </div>
+  </footer>
+
+  <!-- Script -->
+  <script src="/script/script.js"></script>
+</body>
+
+</html>
