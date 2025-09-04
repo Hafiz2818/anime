@@ -403,7 +403,7 @@ function renderHomePage(homeData) {
         <div class="hero-content" style="background-image: url('${ongoing.animeList[0].poster.trim()}')">
           <div class="hero-overlay"></div>
           <div class="hero-info">
-            <h1 class="hero-title">${ongoing.animeList[0].title}</h1>
+            <h1 class="hero-title" title="${ongoing.animeList[0].title}">${truncateTitle(ongoing.animeList[0].title, 40)}</h1>
             <p class="hero-description">Sedang tayang setiap hari ${ongoing.animeList[0].releaseDay}</p>
             <div class="hero-meta">
               <span>${ongoing.animeList[0].episodes} episode</span>
