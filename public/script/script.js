@@ -771,6 +771,98 @@ function renderAnimeDetail(data) {
   }
 
   const anime = data.data;
+  const itemsPerPage = 25;
+  const totalEpisodes = anime.episodeList ? anime.episodeList.length : 0;
+  const totalPages = Math.ceil(totalEpisodes / itemsPerPage);
+
+  // Ambil nomor halaman dari URL (default: 1)
+  const urlParams = new URLSearchParams(window.location.search);
+  let currentPage = parseInt(urlParams.get('episode_page')) || 1;
+  currentPage = Math.max(1, Math.min(currentPage, totalPages)); // Batasi valid
+
+  // Fungsi: Dapatkan episode sesuai halaman
+  function getEpisodesForPage(page) {
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return anime.episodeList.slice(start, end);
+  }
+
+  // Render episode untuk halaman saat ini
+  const currentEpisodes = getEpisodesForPage(currentPage);
+
+  // Pagination HTML
+  function generatePaginationHTML() {
+  if (totalPages <= 1) return '';
+
+  const maxVisiblePages = 3;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+  // Jika kurang dari 5 halaman, sesuaikan
+  if (endPage - startPage < maxVisiblePages - 1) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  }
+
+  let pageButtons = '';
+  for (let i = startPage; i <= endPage; i++) {
+    pageButtons += `
+      <button class="page-btn ${i === currentPage ? 'current-page' : ''}"
+              onclick="changeEpisodePage(${i})">
+        ${i}
+      </button>
+    `;
+  }
+
+  return `
+    <div class="episode-pagination" style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin: 0 auto;">
+      <!-- Baris 1: Nomor Halaman (Center) -->
+      <div class="pagination-pages">
+        ${pageButtons}
+      </div>
+
+      <!-- Baris 2: Navigasi (Left & Right) -->
+      <div class="pagination-nav">
+        <div class="nav-left">
+          <button class="nav-prev" onclick="changeEpisodePage(1)" ${currentPage === 1 ? 'disabled' : ''}>
+            ← Awal
+          </button>
+          <button class="nav-prev" onclick="changeEpisodePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+            ← Sebelumnya
+          </button>
+        </div>
+
+        <div class="nav-right">
+          <button class="nav-next" onclick="changeEpisodePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+            Selanjutnya →
+          </button>
+          <button class="nav-next" onclick="changeEpisodePage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>
+            Akhir →
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+  // Generate episodes HTML
+  let episodesHTML = '';
+  if (anime.episodeList && anime.episodeList.length > 0) {
+    episodesHTML = `
+      <div class="episode-list">
+        <h2>Daftar Episode (Total: ${totalEpisodes})</h2>
+        <div class="episodes-grid">
+          ${currentEpisodes.map(episode => `
+            <a href="/episode/${episode.episodeId}" class="episode-card">
+              <div class="episode-number">Episode ${episode.title}</div>
+            </a>
+          `).join('')}
+        </div>
+        ${generatePaginationHTML()}
+      </div>
+    `;
+  }
+
+  // Sisanya tetap sama...
   let genresHTML = '';
   if (anime.genreList && anime.genreList.length > 0) {
     genresHTML = anime.genreList.map(genre => `
@@ -783,22 +875,6 @@ function renderAnimeDetail(data) {
     synopsisHTML = anime.synopsis.paragraphs.map(paragraph => `
       <p>${paragraph}</p>
     `).join('');
-  }
-
-  let episodesHTML = '';
-  if (anime.episodeList && anime.episodeList.length > 0) {
-    episodesHTML = `
-      <div class="episode-list">
-        <h2>Daftar Episode</h2>
-        <div class="episodes-grid">
-          ${anime.episodeList.map(episode => `
-            <a href="/episode/${episode.episodeId}" class="episode-card">
-              <div class="episode-number">Episode ${episode.title}</div>
-            </a>
-          `).join('')}
-        </div>
-      </div>
-    `;
   }
 
   let recommendedHTML = '';
@@ -925,7 +1001,21 @@ function renderAnimeDetail(data) {
       </div>
     </div>
   `;
+
+  // Simpan data anime ke global agar bisa diakses saat ganti halaman
+  window.currentAnimeData = anime;
 }
+
+function changeEpisodePage(page) {
+  const totalPages = Math.ceil(window.currentAnimeData.episodeList.length / 25);
+  const safePage = Math.max(1, Math.min(page, totalPages));
+
+  const url = new URL(window.location);
+  url.searchParams.set('episode_page', safePage);
+  window.history.pushState({}, '', url);
+  renderAnimeDetail({ ok: true, data: window.currentAnimeData });
+}
+
 
 function renderEpisodePage(data) {
   const contentElement = document.getElementById('content');
@@ -1066,6 +1156,9 @@ function renderEpisodePage(data) {
     changeServer(serverIdFromUrl);
   }
 }
+
+// Fungsi untuk pindah halaman episode
+
 
 function changeServer(serverId) {
   console.log(`Mengganti ke server: ${serverId}`);
