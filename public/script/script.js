@@ -849,7 +849,7 @@ function renderAnimeDetail(data) {
   if (anime.episodeList && anime.episodeList.length > 0) {
     episodesHTML = `
       <div class="episode-list">
-        <h2>Daftar Episode (Total: ${totalEpisodes})</h2>
+        <h2>Daftar Episode</h2>
         <div class="episodes-grid">
           ${currentEpisodes.map(episode => `
             <a href="/episode/${episode.episodeId}" class="episode-card">
