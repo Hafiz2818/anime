@@ -103,7 +103,7 @@ app.post('/api/report-bug', async (req, res) => {
     const emailPayload = {
       sender: {
         name: 'NontonAnime Bug Reporter',
-        email: 'no-reply@nontonanime.com' // Bisa email apa saja, tidak harus verified
+        email: 'hapisnovalrianto@gmail.com' // Bisa email apa saja, tidak harus verified
       },
       to: [
         {
