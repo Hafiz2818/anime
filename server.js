@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const axios = require('axios');
+const nodemailer = require('nodemailer');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -57,6 +58,66 @@ app.get('/api/otakudesu/*', async (req, res) => {
         endpoint: req.params[0]
       });
     }
+  }
+});
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'hapisnovalrianto@gmail.com',
+    pass: 'lwvb yksr lymm ppvn'
+  }
+});
+
+// --- Endpoint untuk menerima laporan bug ---
+app.post('/api/report-bug', async (req, res) => {
+  const { type, pageTitle, pageUrl, description, email } = req.body;
+
+  // Validasi minimal
+  if (!type || !description) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'Jenis laporan dan deskripsi wajib diisi.' 
+    });
+  }
+
+  try {
+    // Siapkan email
+    const mailOptions = {
+      from: email || 'anonymous@nontonanime.com',
+      to: 'hapisnovalrianto@gmail.com',
+      subject: `[LAPORAN BUG] ${type} - NontonAnime`,
+      text: `
+Jenis Laporan: ${type}
+Halaman: ${pageTitle}
+URL: ${pageUrl}
+Email Pelapor: ${email || 'Tidak disediakan'}
+Waktu: ${new Date().toLocaleString('id-ID')}
+Browser: ${req.get('User-Agent')}
+
+=== DESKRIPSI ===
+${description}
+      `
+    };
+
+    // Kirim email
+    await transporter.sendMail(mailOptions);
+
+    console.log('✅ Email laporan bug berhasil dikirim!');
+
+    // Respons sukses ke frontend
+    res.json({ 
+      success: true, 
+      message: 'Laporan berhasil dikirim! Terima kasih atas masukannya.' 
+    });
+
+  } catch (error) {
+    console.error('❌ Gagal mengirim email:', error);
+
+    res.status(500).json({ 
+      success: false,
+      error: 'Gagal mengirim laporan. Silakan coba lagi nanti.' 
+    });
   }
 });
 

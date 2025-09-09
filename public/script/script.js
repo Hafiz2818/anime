@@ -12,11 +12,17 @@ function initRouter() {
     if (link && link.href) {
       e.preventDefault();
       const href = new URL(link.href).pathname;
+
+      // --- SIMPAN URL SAAT INI JIKA MENUJU HALAMAN /report ---
+      if (href === '/report') {
+        localStorage.setItem('bugReportSourceUrl', window.location.href);
+        localStorage.setItem('bugReportSourceTitle', document.title);
+      }
+
       navigateTo(href);
     }
   });
 }
-
 function setupSearch() {
   const searchInput = document.getElementById('searchInput');
   const searchButton = document.getElementById('searchButton');
@@ -167,6 +173,8 @@ function handleRoute() {
   } else if (path.startsWith('/batch/')) {
     const batchId = path.split('/').pop();
     loadBatch(batchId);
+  } else if (path === '/report') {
+    loadReportPage();
   } else {
     show404();
   }
@@ -302,6 +310,10 @@ async function loadBatch(batchId) {
   } catch (error) {
     showErrorMessage(`Gagal memuat batch "${batchId}". Silakan coba lagi nanti.`);
   }
+}
+
+async function loadReportPage() {
+  renderReportPage();
 }
 
 // === Fungsi Rendering ===
@@ -792,28 +804,28 @@ function renderAnimeDetail(data) {
 
   // Pagination HTML
   function generatePaginationHTML() {
-  if (totalPages <= 1) return '';
+    if (totalPages <= 1) return '';
 
-  const maxVisiblePages = 3;
-  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const maxVisiblePages = 3;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
-  // Jika kurang dari 5 halaman, sesuaikan
-  if (endPage - startPage < maxVisiblePages - 1) {
-    startPage = Math.max(1, endPage - maxVisiblePages + 1);
-  }
+    // Jika kurang dari 5 halaman, sesuaikan
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
 
-  let pageButtons = '';
-  for (let i = startPage; i <= endPage; i++) {
-    pageButtons += `
+    let pageButtons = '';
+    for (let i = startPage; i <= endPage; i++) {
+      pageButtons += `
       <button class="page-btn ${i === currentPage ? 'current-page' : ''}"
               onclick="changeEpisodePage(${i})">
         ${i}
       </button>
     `;
-  }
+    }
 
-  return `
+    return `
     <div class="episode-pagination" style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin: 0 auto;">
       <!-- Baris 1: Nomor Halaman (Center) -->
       <div class="pagination-pages">
@@ -842,7 +854,7 @@ function renderAnimeDetail(data) {
       </div>
     </div>
   `;
-}
+  }
 
   // Generate episodes HTML
   let episodesHTML = '';
@@ -1266,6 +1278,124 @@ function updateMobileNav() {
     link.classList.remove('active');
     if (link.getAttribute('href') === path) {
       link.classList.add('active');
+    }
+  });
+}
+
+function renderReportPage() {
+  const savedUrl = localStorage.getItem('bugReportSourceUrl') || window.location.href;
+  const savedTitle = localStorage.getItem('bugReportSourceTitle') || document.title;
+
+  const contentElement = document.getElementById('content');
+  contentElement.innerHTML = `
+    <div class="report-page">
+      <div class="report-container">
+        <h1 class="page-title">Lapor Bug atau Beri Saran</h1>
+        <p class="report-intro">
+          Kami sangat menghargai masukan Anda! Silakan laporkan bug, error, atau berikan saran untuk membuat NontonAnime lebih baik.
+        </p>
+        
+        <form id="bugReportForm" class="report-form">
+          <div class="form-group">
+            <label for="reportType">Jenis Laporan:</label>
+            <select id="reportType" name="reportType" required>
+              <option value="">-- Pilih Jenis --</option>
+              <option value="bug">Bug / Error Aplikasi</option>
+              <option value="suggestion">Saran Fitur Baru</option>
+              <option value="content">Masalah Konten (Anime/Episode)</option>
+              <option value="other">Lainnya</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="pageTitle">Halaman yang Bermasalah:</label>
+            <input type="text" id="pageTitle" name="pageTitle" value="${savedTitle}" readonly>
+          </div>
+
+          <div class="form-group">
+            <label for="pageUrl">URL Halaman Saat Ini:</label>
+            <input type="url" id="pageUrl" name="pageUrl" value="${savedUrl}" readonly>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Deskripsi Lengkap:</label>
+            <textarea id="description" name="description" rows="6" placeholder="Jelaskan secara detail apa yang terjadi, langkah-langkah untuk mereproduksi bug, atau saran Anda..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email Anda (Opsional, jika ingin balasan):</label>
+            <input type="email" id="email" name="email" placeholder="contoh@email.com">
+          </div>
+
+          <button type="submit" class="btn btn-submit">Kirim Laporan</button>
+          <div id="formMessage" class="form-message"></div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  // Tambahkan event listener untuk form
+  document.getElementById('bugReportForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formMessage = document.getElementById('formMessage');
+    const submitBtn = document.querySelector('.btn-submit');
+
+    // Ambil data form
+    const formData = {
+      type: document.getElementById('reportType').value,
+      pageTitle: document.getElementById('pageTitle').value,
+      pageUrl: document.getElementById('pageUrl').value,
+      description: document.getElementById('description').value,
+      email: document.getElementById('email').value || 'Tidak disediakan',
+      timestamp: new Date().toLocaleString('id-ID'),
+      userAgent: navigator.userAgent
+    };
+
+    // Tampilkan loading
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Mengirim...';
+    formMessage.innerHTML = '<p class="info">Sedang memproses laporan Anda...</p>';
+
+    try {
+      // Ambil data form
+      const formData = {
+        type: document.getElementById('reportType').value,
+        pageTitle: document.getElementById('pageTitle').value,
+        pageUrl: document.getElementById('pageUrl').value,
+        description: document.getElementById('description').value,
+        email: document.getElementById('email').value || 'Tidak disediakan'
+      };
+
+      // Tampilkan loading
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Mengirim...';
+      formMessage.innerHTML = '<p class="info">Sedang memproses laporan Anda...</p>';
+
+      // Kirim ke backend Anda
+      const response = await fetch('/api/report-bug', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        formMessage.innerHTML = `<p class="success">✅ ${result.message}</p>`;
+        document.getElementById('bugReportForm').reset();
+      } else {
+        throw new Error(result.error || 'Gagal mengirim laporan');
+      }
+
+    } catch (error) {
+      console.error('Error:', error);
+      formMessage.innerHTML = `<p class="error">❌ ${error.message}</p>`;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Kirim Laporan';
     }
   });
 }
