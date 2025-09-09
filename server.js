@@ -63,6 +63,18 @@ app.get('/api/otakudesu/*', async (req, res) => {
 
 // --- Endpoint untuk menerima laporan bug ---
 app.post('/api/report-bug', async (req, res) => {
+  console.log('=== DEBUG: BREVO_API_KEY ===');
+  console.log('Nilai BREVO_API_KEY:', process.env.BREVO_API_KEY);
+  console.log('Panjang BREVO_API_KEY:', process.env.BREVO_API_KEY?.length);
+
+  if (!process.env.BREVO_API_KEY) {
+    console.error('❌ ERROR: BREVO_API_KEY tidak ditemukan di environment variables!');
+    return res.status(500).json({ 
+      success: false,
+      error: 'Konfigurasi server tidak lengkap. Silakan coba lagi nanti.' 
+    });
+  }
+
   try {
     const { type, pageTitle, pageUrl, description, email } = req.body;
 
