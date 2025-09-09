@@ -61,61 +61,85 @@ app.get('/api/otakudesu/*', async (req, res) => {
   }
 });
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.BREVO_SMTP_USER,
-    pass: process.env.BREVO_SMTP_PASS
-  }
-});
-
 // --- Endpoint untuk menerima laporan bug ---
 app.post('/api/report-bug', async (req, res) => {
-  const { type, pageTitle, pageUrl, description, email } = req.body;
-
-  // Validasi minimal
-  if (!type || !description) {
-    return res.status(400).json({ 
-      success: false,
-      error: 'Jenis laporan dan deskripsi wajib diisi.' 
-    });
-  }
-
   try {
-    // Siapkan email
-    const mailOptions = {
-      from: email || 'anonymous@nontonanime.com',
-      to: 'hapisnovalrianto@gmail.com',
-      subject: `[LAPORAN BUG] ${type} - NontonAnime`,
-      text: `
-Jenis Laporan: ${type}
-Halaman: ${pageTitle}
-URL: ${pageUrl}
-Email Pelapor: ${email || 'Tidak disediakan'}
-Waktu: ${new Date().toLocaleString('id-ID')}
-Browser: ${req.get('User-Agent')}
+    const { type, pageTitle, pageUrl, description, email } = req.body;
 
-=== DESKRIPSI ===
-${description}
+    if (!type || !description) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Jenis laporan dan deskripsi wajib diisi.' 
+      });
+    }
+
+    // Sanitasi input
+    const sanitizeInput = (str) => {
+      if (typeof str !== 'string') return '';
+      return str.replace(/[<>'"&]/g, '').trim();
+    };
+
+    const sanitized = {
+      type: sanitizeInput(type),
+      pageTitle: sanitizeInput(pageTitle),
+      pageUrl: sanitizeInput(pageUrl),
+      description: sanitizeInput(description),
+      email: sanitizeInput(email)
+    };
+
+    // Siapkan payload untuk Brevo API
+    const emailPayload = {
+      sender: {
+        name: 'NontonAnime Bug Reporter',
+        email: 'no-reply@nontonanime.com' // Bisa email apa saja, tidak harus verified
+      },
+      to: [
+        {
+          email: 'hapisnovalrianto@gmail.com', // Ganti dengan email tujuan Anda
+          name: 'Admin NontonAnime'
+        }
+      ],
+      subject: `[LAPORAN BUG] ${sanitized.type} - NontonAnime`,
+      htmlContent: `
+        <h2>Laporan Bug Baru</h2>
+        <p><strong>Jenis Laporan:</strong> ${sanitized.type}</p>
+        <p><strong>Halaman:</strong> ${sanitized.pageTitle}</p>
+        <p><strong>URL:</strong> <a href="${sanitized.pageUrl}">${sanitized.pageUrl}</a></p>
+        <p><strong>Email Pelapor:</strong> ${sanitized.email || 'Tidak disediakan'}</p>
+        <p><strong>Waktu:</strong> ${new Date().toLocaleString('id-ID')}</p>
+        <p><strong>Browser:</strong> ${req.get('User-Agent')}</p>
+        <hr>
+        <h3>Deskripsi Lengkap:</h3>
+        <p>${sanitized.description.replace(/\n/g, '<br>')}</p>
       `
     };
 
-    // Kirim email
-    await transporter.sendMail(mailOptions);
+    // Kirim request ke Brevo API
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.BREVO_API_KEY, // Ambil dari environment variable
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(emailPayload)
+    });
 
-    console.log('✅ Email laporan bug berhasil dikirim!');
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Brevo API Error:', errorData);
+      throw new Error(`Brevo API responded with status ${response.status}`);
+    }
 
-    // Respons sukses ke frontend
+    console.log('✅ Email laporan bug berhasil dikirim via Brevo API!');
+
     res.json({ 
       success: true, 
       message: 'Laporan berhasil dikirim! Terima kasih atas masukannya.' 
     });
 
   } catch (error) {
-    console.error('❌ Gagal mengirim email:', error);
-
+    console.error('❌ Gagal mengirim email:', error.message);
     res.status(500).json({ 
       success: false,
       error: 'Gagal mengirim laporan. Silakan coba lagi nanti.' 
