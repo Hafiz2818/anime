@@ -64,9 +64,10 @@ app.get('/api/otakudesu/*', async (req, res) => {
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.brevo.com',
   port: 587,
+  secure: false,
   auth: {
-    user: 'your-registered-email@domain.com', // Email yang Anda daftarkan di Brevo
-    pass: 'your-smtp-key' // BUKAN password email, tapi SMTP Key dari Brevo
+    user: process.env.BREVO_SMTP_USER, // Ambil dari env
+    pass: process.env.BREVO_SMTP_PASS
   }
 });
 
