@@ -173,8 +173,8 @@ function handleRoute() {
   } else if (path.startsWith('/batch/')) {
     const batchId = path.split('/').pop();
     loadBatch(batchId);
-  } else if (path === '/report') {
-    loadReportPage();
+  } else if (path === '/report') { 
+    loadReportPage(); 
   } else {
     show404();
   }
@@ -317,6 +317,31 @@ async function loadReportPage() {
 }
 
 // === Fungsi Rendering ===
+// === Muat Library EmailJS Secara Dinamis ===
+function loadEmailJS() { // ✅ Ganti IIFE menjadi fungsi biasa
+  return new Promise((resolve, reject) => {
+    if (window.emailjs) {
+      resolve(window.emailjs);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js'; // ✅ HAPUS SPASI EKSTRA
+    script.async = true;
+    script.onload = () => {
+      if (window.emailjs) {
+        window.emailjs.init('HQ0yKXy9yrRp8It5c');
+        resolve(window.emailjs);
+      } else {
+        reject(new Error('EmailJS failed to load'));
+      }
+    };
+    script.onerror = () => reject(new Error('Failed to load EmailJS script'));
+
+    document.head.appendChild(script);
+  });
+}
+
 function renderHomePage(homeData) {
   const contentElement = document.getElementById('content');
   if (!homeData || !homeData.ok || !homeData.data || !homeData.data.ongoing || !homeData.data.completed) {
@@ -1341,9 +1366,9 @@ function renderReportPage() {
     const formMessage = document.getElementById('formMessage');
     const submitBtn = document.querySelector('.btn-submit');
 
-    // Ambil data form
+    // Ambil data form (hanya sekali)
     const formData = {
-      type: document.getElementById('reportType').value,
+      reportType: document.getElementById('reportType').value,
       pageTitle: document.getElementById('pageTitle').value,
       pageUrl: document.getElementById('pageUrl').value,
       description: document.getElementById('description').value,
@@ -1352,47 +1377,39 @@ function renderReportPage() {
       userAgent: navigator.userAgent
     };
 
+    // Validasi minimal
+    if (!formData.reportType || !formData.description) {
+      formMessage.innerHTML = '<p class="error">❌ Jenis laporan dan deskripsi wajib diisi.</p>';
+      return;
+    }
+
     // Tampilkan loading
     submitBtn.disabled = true;
     submitBtn.textContent = 'Mengirim...';
     formMessage.innerHTML = '<p class="info">Sedang memproses laporan Anda...</p>';
 
     try {
-      // Ambil data form
-      const formData = {
-        type: document.getElementById('reportType').value,
-        pageTitle: document.getElementById('pageTitle').value,
-        pageUrl: document.getElementById('pageUrl').value,
-        description: document.getElementById('description').value,
-        email: document.getElementById('email').value || 'Tidak disediakan'
-      };
+      // Tunggu EmailJS siap
+      await loadEmailJS();
 
-      // Tampilkan loading
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Mengirim...';
-      formMessage.innerHTML = '<p class="info">Sedang memproses laporan Anda...</p>';
+      // Kirim email via EmailJS
+      await window.emailjs.send(
+        'service_2008',        // Ganti dengan Service ID Anda
+        'template_281811',     // Ganti dengan Template ID Anda
+        formData
+      );
 
-      // Kirim ke backend Anda
-      const response = await fetch('/api/report-bug', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
+      // Tampilkan pesan sukses
+      formMessage.innerHTML = '<p class="success">✅ Laporan berhasil dikirim! Terima kasih atas masukannya.</p>';
+      document.getElementById('bugReportForm').reset();
 
-      const result = await response.json();
-
-      if (result.success) {
-        formMessage.innerHTML = `<p class="success">✅ ${result.message}</p>`;
-        document.getElementById('bugReportForm').reset();
-      } else {
-        throw new Error(result.error || 'Gagal mengirim laporan');
-      }
+      // Bersihkan localStorage
+      localStorage.removeItem('bugReportSourceUrl');
+      localStorage.removeItem('bugReportSourceTitle');
 
     } catch (error) {
       console.error('Error:', error);
-      formMessage.innerHTML = `<p class="error">❌ ${error.message}</p>`;
+      formMessage.innerHTML = `<p class="error">❌ ${error.message || 'Gagal mengirim laporan. Silakan coba lagi.'}</p>`;
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Kirim Laporan';
