@@ -62,10 +62,11 @@ app.get('/api/otakudesu/*', async (req, res) => {
 });
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
   auth: {
-    user: 'hapisnovalrianto@gmail.com',
-    pass: 'lwvb yksr lymm ppvn'
+    user: 'your-registered-email@domain.com', // Email yang Anda daftarkan di Brevo
+    pass: 'your-smtp-key' // BUKAN password email, tapi SMTP Key dari Brevo
   }
 });
 
