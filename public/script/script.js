@@ -23,12 +23,12 @@ function loadFirebaseSDK() {
     }
     // 1. Load Firebase App (GUNAKAN -compat.js)
     const appScript = document.createElement('script');
-    appScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'; // <-- Ganti di sini
+    appScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'; // ✅ DIPERBAIKI
     appScript.async = true;
     appScript.onload = () => {
       // 2. Load Firebase Auth (GUNAKAN -compat.js)
       const authScript = document.createElement('script');
-      authScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'; // <-- Ganti di sini
+      authScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'; // ✅ DIPERBAIKI
       authScript.async = true;
       authScript.onload = () => {
         // 3. Inisialisasi Firebase
@@ -41,16 +41,17 @@ function loadFirebaseSDK() {
           appId: "1:289843332779:web:3a498ff0002cdfd26e59ee",
           measurementId: "G-73PBHEYKPW"
         };
-        // Gunakan firebase dari global scope
+        // Inisialisasi
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+
         // Ekspor ke window
         window.firebaseAuth = {
           auth,
-          createUserWithEmailAndPassword: auth.createUserWithEmailAndPassword,
-          signInWithEmailAndPassword: auth.signInWithEmailAndPassword,
-          signOut: auth.signOut,
-          onAuthStateChanged: auth.onAuthStateChanged
+          createUserWithEmailAndPassword: auth.createUserWithEmailAndPassword.bind(auth),
+          signInWithEmailAndPassword: auth.signInWithEmailAndPassword.bind(auth),
+          signOut: auth.signOut.bind(auth),
+          onAuthStateChanged: auth.onAuthStateChanged.bind(auth)
         };
         firebaseInitialized = true;
         resolve(window.firebaseAuth);
@@ -1505,44 +1506,129 @@ function renderRegisterPage() {
 
 // === Fungsi: Register User ===
 async function registerUser() {
-  const email = document.getElementById('regEmail').value;
-  const password = document.getElementById('regPassword').value;
-  const username = document.getElementById('regUsername').value;
+  const emailInput = document.getElementById('regEmail');
+  const passwordInput = document.getElementById('regPassword');
+  const usernameInput = document.getElementById('regUsername');
+
+  if (!emailInput || !passwordInput || !usernameInput) {
+    alert('Form tidak ditemukan');
+    return;
+  }
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+  const username = usernameInput.value.trim();
 
   if (!email || !password || !username) {
     alert('Semua field wajib diisi');
     return;
   }
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    alert('Format email tidak valid');
+    return;
+  }
+
   try {
-    await loadFirebaseSDK(); // Pastikan Firebase sudah dimuat
-    const { user } = await window.firebaseAuth.createUserWithEmailAndPassword(window.firebaseAuth.auth, email, password);
-    localStorage.setItem('firebaseToken', await user.getIdToken());
+    await loadFirebaseSDK();
+
+    if (!window.firebaseAuth || !window.firebaseAuth.auth) {
+      throw new Error('Firebase Auth tidak tersedia');
+    }
+
+    const { user } = await window.firebaseAuth.createUserWithEmailAndPassword(
+      window.firebaseAuth.auth,
+      email,
+      password
+    );
+
+    const token = await user.getIdToken();
+    localStorage.setItem('firebaseToken', token);
+    localStorage.setItem('userEmail', email);
+
     alert('Registrasi berhasil!');
     navigateTo('/');
   } catch (error) {
-    alert('Gagal: ' + (error.message || 'Email sudah digunakan'));
+    console.error('Error registrasi:', error);
+    let msg = 'Gagal: ';
+    if (error.code === 'auth/email-already-in-use') {
+      msg += 'Email sudah digunakan';
+    } else if (error.code === 'auth/weak-password') {
+      msg += 'Password terlalu lemah (minimal 6 karakter)';
+    } else {
+      msg += error.message;
+    }
+    alert(msg);
   }
 }
 
 // === Fungsi: Login User ===
 async function loginUser() {
-  const email = document.getElementById('loginEmail').value;
-  const password = document.getElementById('loginPassword').value;
+  // ✅ Ambil elemen dulu, cek apakah ada
+  const emailInput = document.getElementById('loginEmail');
+  const passwordInput = document.getElementById('loginPassword');
 
+  // ✅ Cek apakah elemen ditemukan
+  if (!emailInput || !passwordInput) {
+    alert('Form login tidak ditemukan. Harap refresh halaman.');
+    console.error('Elemen login tidak ditemukan di DOM');
+    return;
+  }
+
+  // ✅ Ambil nilai setelah memastikan elemen ada
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  // ✅ Validasi isi
   if (!email || !password) {
     alert('Email dan password wajib diisi');
     return;
   }
 
+  // ✅ Validasi format email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    alert('Format email tidak valid');
+    return;
+  }
+
   try {
-    await loadFirebaseSDK(); // Pastikan Firebase sudah dimuat
-    const { user } = await window.firebaseAuth.signInWithEmailAndPassword(window.firebaseAuth.auth, email, password);
-    localStorage.setItem('firebaseToken', await user.getIdToken());
+    await loadFirebaseSDK();
+
+    if (!window.firebaseAuth || !window.firebaseAuth.auth) {
+      throw new Error('Firebase Auth tidak tersedia');
+    }
+
+    // ✅ Pastikan email dan password adalah string
+    console.log('📧 Email:', email, 'Type:', typeof email);
+    console.log('🔑 Password:', password, 'Type:', typeof password);
+
+    const { user } = await window.firebaseAuth.signInWithEmailAndPassword(
+      window.firebaseAuth.auth,
+      email,
+      password
+    );
+
+    const token = await user.getIdToken();
+    localStorage.setItem('firebaseToken', token);
+    localStorage.setItem('userEmail', email);
+
     alert('Login berhasil!');
     navigateTo('/');
   } catch (error) {
-    alert('Gagal: ' + (error.message || 'Email/password salah'));
+    console.error('Error login:', error);
+    let msg = 'Gagal login: ';
+    if (error.code === 'auth/user-not-found') {
+      msg += 'Email tidak ditemukan';
+    } else if (error.code === 'auth/wrong-password') {
+      msg += 'Password salah';
+    } else if (error.code === 'auth/invalid-email') {
+      msg += 'Email tidak valid';
+    } else {
+      msg += error.message;
+    }
+    alert(msg);
   }
 }
 
