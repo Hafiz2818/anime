@@ -369,24 +369,20 @@ async function loadEpisode(episodeId) {
 
     // ✅ Hapus pengecekan info.title dan info.thumbnail
     if (data?.ok && data.data?.animeId) {
-      // ✅ Ambil judul anime dari judul episode
       const animeTitle = data.data.title.replace(/ Episode \d+ Subtitle Indonesia$/, '');
-      // ✅ Ambil nomor episode
       const episodeNumber = data.data.title.match(/Episode (\d+)/)?.[1] || '1';
-      // ✅ Ambil animeId
       const animeId = data.data.animeId;
-
-      // ✅ Ambil poster dari localStorage atau API (opsional, bisa async)
       let animePoster = null;
 
-      // Cara 1: Simpan poster saat buka halaman anime (rekomendasi)
       const storedPoster = localStorage.getItem(`animePoster_${animeId}`);
       if (storedPoster) {
         animePoster = storedPoster;
       }
 
-      // ✅ Simpan ke riwayat
-      addToWatchHistory(animeId, animeTitle, animePoster, episodeNumber);
+      if (isLoggedIn()) {
+        const storedPoster = localStorage.getItem(`animePoster_${animeId}`);
+        addToWatchHistory(animeId, animeTitle, animePoster, episodeNumber);
+      }
     }
   } catch (error) {
     showErrorMessage(`Gagal memuat episode "${episodeId}". Silakan coba lagi nanti.`);
