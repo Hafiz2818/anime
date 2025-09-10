@@ -167,16 +167,15 @@ header {
   border-color: var(--primary-color);
 }
 
-/* === PROFIL USER === */
+/* === PROFILE PAGE === */
 .profile-container {
-  max-width: 500px;
+  max-width: 800px;
   margin: 40px auto;
-  padding: 30px;
+  padding: 20px;
   background-color: var(--card-bg);
   border-radius: 12px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
   border: 1px solid var(--border-color);
-  text-align: center;
   animation: fadeInUp 0.5s ease;
 }
 
@@ -191,62 +190,244 @@ header {
   }
 }
 
-.profile-icon {
-  font-size: 3rem;
-  color: var(--accent-color);
-  margin-bottom: 15px;
+.profile-header {
+  text-align: center;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.profile-title {
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--accent-color);
+  margin: 0 auto 10px;
+  position: relative;
+  font-weight: bold;
+  box-shadow: 0 0 15px rgba(0, 184, 255, 0.3);
+}
+
+.avatar-initial {
+  font-weight: bold;
+}
+
+.profile-name {
   font-size: 1.8rem;
   color: var(--text-color);
-  margin-bottom: 10px;
+  margin: 0;
 }
 
-.profile-welcome {
-  font-size: 1.2rem;
-  color: var(--accent-color);
-  margin-bottom: 20px;
-}
-
-.profile-info {
-  margin-bottom: 25px;
+.profile-status {
+  font-size: 0.9rem;
   color: var(--text-secondary);
-  line-height: 1.6;
+  margin: 5px 0;
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: rgba(41, 121, 255, 0.1);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
 }
 
 .profile-actions {
+  margin-top: 15px;
   display: flex;
-  gap: 15px;
+  gap: 10px;
   justify-content: center;
 }
 
-.profile-btn {
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  text-align: center;
-  flex: 1;
-  max-width: 150px;
-}
-
-.profile-btn.logout {
-  background-color: #ef4444;
-  color: white;
-}
-
-.profile-btn.logout:hover {
-  background-color: #dc2626;
-}
-
-.profile-btn.home {
+.btn-secondary {
   background-color: var(--primary-color);
   color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.profile-btn.home:hover {
+.btn-secondary:hover {
   background-color: #1a68e8;
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background-color: #e53935;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+  background-color: #c62828;
+  transform: translateY(-1px);
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 20px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab-button {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.tab-button:hover {
+  color: var(--accent-color);
+}
+
+.tab-button.active {
+  color: var(--accent-color);
+  border-bottom: 2px solid var(--accent-color);
+}
+
+/* Tombol Hapus di Riwayat */
+.history-item .btn-delete {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  font-size: 0.8em;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+.history-item .btn-delete:hover {
+  background-color: #c82333;
+}
+
+.history-controls {
+  margin-bottom: 15px;
+  text-align: right;
+}
+
+.btn-warning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover {
+  background-color: #e0a800;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+.profile-content {
+  padding: 20px;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.anime-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 25px;
+  margin-top: 20px;
+}
+
+.anime-card {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+}
+
+.anime-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary-color);
+}
+
+.anime-thumbnail {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  display: block;
+}
+
+.anime-thumbnail-placeholder {
+  width: 100%;
+  height: 250px;
+  background: linear-gradient(135deg, #12193a, #0d132d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--border-color);
+}
+
+.anime-info {
+  padding: 10px;
+  text-align: center;
+}
+
+.anime-title {
+  font-size: 1.1rem;
+  color: var(--text-color);
+  margin: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.episode-info {
+  font-size: 0.9rem;
+  color: var(--accent-color);
+  margin-top: 5px;
+}
+
+.no-history {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.about-info {
+  padding: 20px;
+  background-color: rgba(20, 30, 60, 0.2);
+  border-radius: 8px;
+  margin-top: 20px;
+  line-height: 1.7;
+}
+
+.about-info p {
+  margin: 8px 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.about-info strong {
+  color: var(--accent-color);
 }
 
 /* ==============================
@@ -1654,6 +1835,26 @@ footer:hover .footer-content p {
 }
 
 @media (max-width: 768px) {
+  .profile-container {
+    margin: 20px 10px;
+    padding: 15px;
+  }
+
+  .profile-name {
+    font-size: 1.5rem;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn-secondary,
+  .btn-danger {
+    width: 80%;
+    max-width: 200px;
+  }
+  
   .report-container {
     padding: 25px;
     margin: 15px;
