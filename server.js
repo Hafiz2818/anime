@@ -22,8 +22,6 @@ if (serviceAccountKey) {
   } catch (error) {
     console.error('❌ Gagal parse FIREBASE_SERVICE_ACCOUNT_KEY:', error.message);
   }
-} else {
-  console.warn('⚠️  Firebase Admin tidak diaktifkan (FIREBASE_SERVICE_ACCOUNT_KEY tidak ditemukan)');
 }
 
 // --- Middleware ---
@@ -101,5 +99,5 @@ app.get('*', (req, res) => {
 // --- Jalankan Server ---
 app.listen(port, '0.0.0.0', () => {
   console.log(`✅ NontonAnime server berjalan di http://localhost:${port}`);
-  console.log('🔌 Firebase Auth: aktif jika FIREBASE_SERVICE_ACCOUNT_KEY tersedia');
+  console.log(`✅ NontonAnime server berjalan di IpAddress:${port}`)
 });
