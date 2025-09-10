@@ -1537,8 +1537,8 @@ async function registerUser() {
       throw new Error('Firebase Auth tidak tersedia');
     }
 
+    // ✅ Hanya gunakan email dan password
     const { user } = await window.firebaseAuth.createUserWithEmailAndPassword(
-      window.firebaseAuth.auth,
       email,
       password
     );
@@ -1565,28 +1565,22 @@ async function registerUser() {
 
 // === Fungsi: Login User ===
 async function loginUser() {
-  // ✅ Ambil elemen dulu, cek apakah ada
   const emailInput = document.getElementById('loginEmail');
   const passwordInput = document.getElementById('loginPassword');
 
-  // ✅ Cek apakah elemen ditemukan
   if (!emailInput || !passwordInput) {
-    alert('Form login tidak ditemukan. Harap refresh halaman.');
-    console.error('Elemen login tidak ditemukan di DOM');
+    alert('Form login tidak ditemukan');
     return;
   }
 
-  // ✅ Ambil nilai setelah memastikan elemen ada
   const email = emailInput.value.trim();
   const password = passwordInput.value.trim();
 
-  // ✅ Validasi isi
   if (!email || !password) {
     alert('Email dan password wajib diisi');
     return;
   }
 
-  // ✅ Validasi format email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     alert('Format email tidak valid');
@@ -1600,12 +1594,8 @@ async function loginUser() {
       throw new Error('Firebase Auth tidak tersedia');
     }
 
-    // ✅ Pastikan email dan password adalah string
-    console.log('📧 Email:', email, 'Type:', typeof email);
-    console.log('🔑 Password:', password, 'Type:', typeof password);
-
+    // ✅ Hanya gunakan email dan password
     const { user } = await window.firebaseAuth.signInWithEmailAndPassword(
-      window.firebaseAuth.auth,
       email,
       password
     );
