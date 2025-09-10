@@ -317,7 +317,6 @@ async function loadReportPage() {
 }
 
 // === Fungsi Rendering ===
-// === Muat Library EmailJS Secara Dinamis ===
 function loadEmailJS() { // ✅ Ganti IIFE menjadi fungsi biasa
   return new Promise((resolve, reject) => {
     if (window.emailjs) {
@@ -835,7 +834,6 @@ function renderAnimeDetail(data) {
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
-    // Jika kurang dari 5 halaman, sesuaikan
     if (endPage - startPage < maxVisiblePages - 1) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
@@ -1039,7 +1037,6 @@ function renderAnimeDetail(data) {
     </div>
   `;
 
-  // Simpan data anime ke global agar bisa diakses saat ganti halaman
   window.currentAnimeData = anime;
 }
 
@@ -1359,7 +1356,6 @@ function renderReportPage() {
     </div>
   `;
 
-  // Tambahkan event listener untuk form
   document.getElementById('bugReportForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -1383,27 +1379,23 @@ function renderReportPage() {
       return;
     }
 
-    // Tampilkan loading
     submitBtn.disabled = true;
     submitBtn.textContent = 'Mengirim...';
     formMessage.innerHTML = '<p class="info">Sedang memproses laporan Anda...</p>';
 
     try {
-      // Tunggu EmailJS siap
       await loadEmailJS();
 
       // Kirim email via EmailJS
       await window.emailjs.send(
-        'service_2008',        // Ganti dengan Service ID Anda
-        'template_281811',     // Ganti dengan Template ID Anda
+        'service_2008',        
+        'template_281811',     
         formData
       );
 
-      // Tampilkan pesan sukses
       formMessage.innerHTML = '<p class="success">✅ Laporan berhasil dikirim! Terima kasih atas masukannya.</p>';
       document.getElementById('bugReportForm').reset();
 
-      // Bersihkan localStorage
       localStorage.removeItem('bugReportSourceUrl');
       localStorage.removeItem('bugReportSourceTitle');
 

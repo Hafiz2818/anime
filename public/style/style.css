@@ -129,7 +129,6 @@ header {
   width: 100%;
 }
 
-/* Search Desktop */
 .search-container {
   display: flex;
   gap: 10px;
@@ -151,7 +150,6 @@ header {
   color: #80a0c0;
 }
 
-/* Tombol Search Mobile */
 .mobile-search-btn {
   display: none;
   background: none;
@@ -561,7 +559,7 @@ main {
   border: 1px solid var(--border-color);
   color: var(--text-color);
   cursor: pointer;
-  min-width: 40px; /* Batasi lebar minimum */
+  min-width: 40px; 
   text-align: center;
   font-size: 0.9rem;
   transition: all 0.2s ease;
@@ -1235,15 +1233,15 @@ main {
 }
 
 .report-container {
-  background: #1e293b; /* slate-800 - abu-abu biru gelap */
+  background: #1e293b; 
   padding: 40px;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  border: 1px solid #334155; /* slate-700 */
+  border: 1px solid #334155; 
 }
 
 .page-title {
-  color: #f1f5f9; /* slate-100 - putih lembut */
+  color: #f1f5f9; 
   text-align: center;
   margin-bottom: 25px;
   font-size: 2em;
@@ -1252,14 +1250,13 @@ main {
 }
 
 .report-intro {
-  color: #cbd5e1; /* slate-300 */
+  color: #cbd5e1; 
   margin-bottom: 35px;
   font-size: 1.1em;
   line-height: 1.6;
   text-align: center;
 }
 
-/* Form Styling */
 .report-form {
   display: flex;
   flex-direction: column;
@@ -1273,7 +1270,7 @@ main {
 }
 
 .form-group label {
-  color: #f1f5f9; /* slate-100 */
+  color: #f1f5f9; 
   font-weight: 600;
   font-size: 0.95em;
   letter-spacing: 0.5px;
@@ -1283,9 +1280,9 @@ main {
 .form-group input,
 .form-group textarea {
   padding: 14px;
-  border: 2px solid #334155; /* slate-700 */
-  background: #0f172a; /* slate-900 */
-  color: #e2e8f0; /* slate-200 */
+  border: 2px solid #334155; 
+  background: #0f172a; 
+  color: #e2e8f0; 
   border-radius: 10px;
   font-size: 1em;
   transition: all 0.3s ease;
@@ -1296,8 +1293,8 @@ main {
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3b82f6; /* biru elektrik */
-  background: #1e293b; /* slate-800 */
+  border-color: #3b82f6; 
+  background: #1e293b; 
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
@@ -1309,14 +1306,13 @@ main {
 
 .form-group input[readonly],
 .form-group input:read-only {
-  background: #334155; /* slate-700 */
-  color: #94a3b8; /* slate-400 */
+  background: #334155; 
+  color: #94a3b8;
   cursor: not-allowed;
 }
 
-/* Tombol Submit */
 .btn-submit {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6); /* ungu gradasi */
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
   padding: 16px 32px;
   font-size: 1.1em;
@@ -1343,7 +1339,6 @@ main {
   box-shadow: none;
 }
 
-/* Pesan Feedback */
 .form-message {
   margin-top: 20px;
   padding: 15px;
@@ -1360,20 +1355,20 @@ main {
 }
 
 .form-message.success {
-  background: rgba(16, 185, 129, 0.15); /* hijau emerald transparan */
-  color: #10b981; /* hijau emerald */
+  background: rgba(16, 185, 129, 0.15); 
+  color: #10b981; 
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .form-message.error {
-  background: rgba(239, 68, 68, 0.15); /* merah transparan */
-  color: #ef4444; /* merah */
+  background: rgba(239, 68, 68, 0.15); 
+  color: #ef4444; 
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .form-message.info {
-  background: rgba(59, 130, 246, 0.15); /* biru transparan */
-  color: #3b82f6; /* biru */
+  background: rgba(59, 130, 246, 0.15); 
+  color: #3b82f6; 
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
@@ -1535,9 +1530,9 @@ footer:hover .footer-content p {
   }
 
   .episode-pagination .page-btn {
-    width: auto; /* Biar tidak penuh lebar */
+    width: auto; 
     min-width: 40px;
-    max-width: 60px; /* Maksimal lebar */
+    max-width: 60px;
   }
 
   .desktop-search {
