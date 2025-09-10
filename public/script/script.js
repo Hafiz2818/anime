@@ -21,18 +21,15 @@ function loadFirebaseSDK() {
       resolve(window.firebaseAuth);
       return;
     }
-
-    // 1. Load Firebase App
+    // 1. Load Firebase App (versi compat/UMD)
     const appScript = document.createElement('script');
-    appScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    appScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'; // <-- Ganti di sini
     appScript.async = true;
-
     appScript.onload = () => {
-      // 2. Load Firebase Auth
+      // 2. Load Firebase Auth (versi compat/UMD)
       const authScript = document.createElement('script');
-      authScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+      authScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'; // <-- Ganti di sini
       authScript.async = true;
-
       authScript.onload = () => {
         // 3. Inisialisasi Firebase
         const firebaseConfig = {
@@ -44,27 +41,23 @@ function loadFirebaseSDK() {
           appId: "1:289843332779:web:3a498ff0002cdfd26e59ee",
           measurementId: "G-73PBHEYKPW"
         };
-
+        // Gunakan firebase dari global scope
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-
-        // Ekspor ke window agar bisa dipakai fungsi lain
+        // Ekspor ke window
         window.firebaseAuth = {
           auth,
-          createUserWithEmailAndPassword: firebase.auth.createUserWithEmailAndPassword,
-          signInWithEmailAndPassword: firebase.auth.signInWithEmailAndPassword,
-          signOut: firebase.auth.signOut,
-          onAuthStateChanged: firebase.auth.onAuthStateChanged
+          createUserWithEmailAndPassword: auth.createUserWithEmailAndPassword,
+          signInWithEmailAndPassword: auth.signInWithEmailAndPassword,
+          signOut: auth.signOut,
+          onAuthStateChanged: auth.onAuthStateChanged
         };
-
         firebaseInitialized = true;
         resolve(window.firebaseAuth);
       };
-
       authScript.onerror = () => reject(new Error('Gagal load Firebase Auth SDK'));
       document.head.appendChild(authScript);
     };
-
     appScript.onerror = () => reject(new Error('Gagal load Firebase App SDK'));
     document.head.appendChild(appScript);
   });
