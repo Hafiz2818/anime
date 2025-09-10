@@ -449,7 +449,6 @@ function renderProfilePage() {
             <span class="avatar-initial">${username.charAt(0).toUpperCase()}</span>
           </div>
           <h2 class="profile-name">${username}</h2>
-          <p class="profile-status">Rakyat Jakarta</p>
           <div class="profile-actions">
             <button onclick="navigateTo('/')" class="btn btn-secondary">Beranda</button>
             <button onclick="logoutUser()" class="btn btn-danger">Logout</button>
