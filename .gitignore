@@ -71,8 +71,14 @@ web_modules/
 
 # dotenv environment variables file
 .env
+.env.local
+.env.development
 .env.test
 .env.production
+
+# Firebase
+firebase-key.json
+serviceAccountKey.json
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

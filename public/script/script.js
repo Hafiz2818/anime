@@ -6,6 +6,64 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('popstate', handleRoute);
 });
 
+// === SETUP FIREBASE DINAMIS DI SCRIPT.JS ===
+let firebaseInitialized = false;
+
+function loadFirebaseSDK() {
+  return new Promise((resolve, reject) => {
+    if (firebaseInitialized && window.firebaseAuth) {
+      resolve(window.firebaseAuth);
+      return;
+    }
+
+    // 1. Load Firebase App
+    const appScript = document.createElement('script');
+    appScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    appScript.async = true;
+
+    appScript.onload = () => {
+      // 2. Load Firebase Auth
+      const authScript = document.createElement('script');
+      authScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+      authScript.async = true;
+
+      authScript.onload = () => {
+        // 3. Inisialisasi Firebase
+        const firebaseConfig = {
+          apiKey: "AIzaSyDidzm-lgEddoj_d65u0Iw3KRWmjEltAbQ",
+          authDomain: "nontonanime-auth.firebaseapp.com",
+          projectId: "nontonanime-auth",
+          storageBucket: "nontonanime-auth.firebasestorage.app",
+          messagingSenderId: "289843332779",
+          appId: "1:289843332779:web:3a498ff0002cdfd26e59ee",
+          measurementId: "G-73PBHEYKPW"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Ekspor ke window agar bisa dipakai fungsi lain
+        window.firebaseAuth = {
+          auth,
+          createUserWithEmailAndPassword: firebase.auth.createUserWithEmailAndPassword,
+          signInWithEmailAndPassword: firebase.auth.signInWithEmailAndPassword,
+          signOut: firebase.auth.signOut,
+          onAuthStateChanged: firebase.auth.onAuthStateChanged
+        };
+
+        firebaseInitialized = true;
+        resolve(window.firebaseAuth);
+      };
+
+      authScript.onerror = () => reject(new Error('Gagal load Firebase Auth SDK'));
+      document.head.appendChild(authScript);
+    };
+
+    appScript.onerror = () => reject(new Error('Gagal load Firebase App SDK'));
+    document.head.appendChild(appScript);
+  });
+}
+
 function initRouter() {
   document.addEventListener('click', (e) => {
     const link = e.target.closest('a[data-page]');
@@ -173,8 +231,12 @@ function handleRoute() {
   } else if (path.startsWith('/batch/')) {
     const batchId = path.split('/').pop();
     loadBatch(batchId);
-  } else if (path === '/report') { 
-    loadReportPage(); 
+  } else if (path === '/report') {
+    loadReportPage();
+  } else if (path === '/login') {
+    renderLoginPage();
+  } else if (path === '/register') {
+    renderRegisterPage();
   } else {
     show404();
   }
@@ -1304,6 +1366,95 @@ function updateMobileNav() {
   });
 }
 
+// === Fungsi: Render Halaman Login ===
+function renderLoginPage() {
+  document.getElementById('content').innerHTML = `
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="logo"><span class="logo-icon">📺</span><span class="logo-text">NontonAnime</span></div>
+        <h2>Masuk</h2>
+        <input type="email" id="loginEmail" placeholder="Email" />
+        <input type="password" id="loginPassword" placeholder="Password" />
+        <button onclick="loginUser()" class="btn">Login</button>
+        <p><a href="/register">Belum punya akun? Daftar</a></p>
+      </div>
+    </div>
+  `;
+}
+
+// === Fungsi: Render Halaman Register ===
+function renderRegisterPage() {
+  document.getElementById('content').innerHTML = `
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="logo"><span class="logo-icon">📺</span><span class="logo-text">NontonAnime</span></div>
+        <h2>Daftar</h2>
+        <input type="text" id="regUsername" placeholder="Username" />
+        <input type="email" id="regEmail" placeholder="Email" />
+        <input type="password" id="regPassword" placeholder="Password" />
+        <button onclick="registerUser()" class="btn">Daftar</button>
+        <p><a href="/login">Sudah punya akun? Login</a></p>
+      </div>
+    </div>
+  `;
+}
+
+// === Fungsi: Register User ===
+async function registerUser() {
+  const email = document.getElementById('regEmail').value;
+  const password = document.getElementById('regPassword').value;
+  const username = document.getElementById('regUsername').value;
+
+  if (!email || !password || !username) {
+    alert('Semua field wajib diisi');
+    return;
+  }
+
+  try {
+    await loadFirebaseSDK(); // Pastikan Firebase sudah dimuat
+    const { user } = await window.firebaseAuth.createUserWithEmailAndPassword(window.firebaseAuth.auth, email, password);
+    localStorage.setItem('firebaseToken', await user.getIdToken());
+    alert('Registrasi berhasil!');
+    navigateTo('/');
+  } catch (error) {
+    alert('Gagal: ' + (error.message || 'Email sudah digunakan'));
+  }
+}
+
+// === Fungsi: Login User ===
+async function loginUser() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+
+  if (!email || !password) {
+    alert('Email dan password wajib diisi');
+    return;
+  }
+
+  try {
+    await loadFirebaseSDK(); // Pastikan Firebase sudah dimuat
+    const { user } = await window.firebaseAuth.signInWithEmailAndPassword(window.firebaseAuth.auth, email, password);
+    localStorage.setItem('firebaseToken', await user.getIdToken());
+    alert('Login berhasil!');
+    navigateTo('/');
+  } catch (error) {
+    alert('Gagal: ' + (error.message || 'Email/password salah'));
+  }
+}
+
+// === Fungsi: Logout ===
+async function logoutUser() {
+  try {
+    await loadFirebaseSDK();
+    await window.firebaseAuth.signOut();
+    localStorage.removeItem('firebaseToken');
+    alert('Logout berhasil');
+    navigateTo('/');
+  } catch (error) {
+    alert('Gagal logout: ' + error.message);
+  }
+}
+
 function renderReportPage() {
   const savedUrl = localStorage.getItem('bugReportSourceUrl') || window.location.href;
   const savedTitle = localStorage.getItem('bugReportSourceTitle') || document.title;
@@ -1388,8 +1539,8 @@ function renderReportPage() {
 
       // Kirim email via EmailJS
       await window.emailjs.send(
-        'service_2008',        
-        'template_281811',     
+        'service_2008',
+        'template_281811',
         formData
       );
 
