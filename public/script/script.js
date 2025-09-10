@@ -4,7 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
   setupMobileSearch();
   handleRoute();
   window.addEventListener('popstate', handleRoute);
+  updateAuthUI();
 });
+
+// === Cek apakah user sudah login ===
+function isLoggedIn() {
+  return !!localStorage.getItem('firebaseToken');
+}
 
 // === SETUP FIREBASE DINAMIS DI SCRIPT.JS ===
 let firebaseInitialized = false;
@@ -237,6 +243,8 @@ function handleRoute() {
     renderLoginPage();
   } else if (path === '/register') {
     renderRegisterPage();
+  } else if (path === '/profile') {
+    renderProfilePage();
   } else {
     show404();
   }
@@ -379,6 +387,73 @@ async function loadReportPage() {
 }
 
 // === Fungsi Rendering ===
+function renderProfilePage() {
+  const contentElement = document.getElementById('content');
+
+  if (isLoggedIn()) {
+    // Ambil email dari token (opsional, bisa ditambahkan nanti)
+    const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
+
+    contentElement.innerHTML = `
+      <div class="profile-container">
+        <div class="profile-icon">👤</div>
+        <h2 class="profile-title">Halo, ${userEmail.split('@')[0]}!</h2>
+        <p class="profile-welcome">Selamat datang di NontonAnime</p>
+        <p class="profile-info">
+          Kamu sudah berhasil login. Nikmati semua fitur eksklusif kami!
+        </p>
+        <div class="profile-actions">
+          <button onclick="navigateTo('/')" class="profile-btn home">Beranda</button>
+          <button onclick="logoutUser()" class="profile-btn logout">Logout</button>
+        </div>
+      </div>
+    `;
+  } else {
+    contentElement.innerHTML = `
+      <div class="profile-container">
+        <div class="profile-icon">🔐</div>
+        <h2 class="profile-title">Belum Login</h2>
+        <p class="profile-info">
+          Silakan login terlebih dahulu untuk mengakses profil dan fitur eksklusif.
+        </p>
+        <div class="profile-actions">
+          <button onclick="navigateTo('/login')" class="profile-btn home">Login</button>
+          <button onclick="navigateTo('/register')" class="profile-btn logout">Daftar</button>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function updateAuthUI() {
+  // Update Desktop Nav
+  const navLinks = document.querySelector('.nav-links');
+  if (navLinks) {
+    // Hapus tombol lama
+    const oldAuth = document.querySelector('.auth-nav-item');
+    if (oldAuth) oldAuth.remove();
+
+    const li = document.createElement('li');
+    li.classList.add('auth-nav-item');
+
+    const a = document.createElement('a');
+    a.href = '#';
+    a.textContent = isLoggedIn() ? 'Profil' : 'Login';
+    a.classList.add('auth-nav-link');
+
+    a.onclick = (e) => {
+      e.preventDefault();
+      navigateTo('/profile');
+    };
+
+    li.appendChild(a);
+    navLinks.appendChild(li);
+  }
+
+  // Update Mobile Nav
+  updateMobileNav();
+}
+
 function loadEmailJS() { // ✅ Ganti IIFE menjadi fungsi biasa
   return new Promise((resolve, reject) => {
     if (window.emailjs) {
@@ -1358,15 +1433,51 @@ function renderBatchPage(data) {
 function updateMobileNav() {
   const path = window.location.pathname;
   const mobileLinks = document.querySelectorAll('.mobile-navbar a');
+
+  // Reset semua active class
   mobileLinks.forEach(link => {
     link.classList.remove('active');
+  });
+
+  // Set active untuk halaman saat ini
+  mobileLinks.forEach(link => {
     if (link.getAttribute('href') === path) {
       link.classList.add('active');
     }
   });
+
+  // Hapus tombol auth lama jika ada
+  const existingAuth = document.querySelector('.mobile-navbar a[href="/profile"]');
+  if (existingAuth) existingAuth.remove();
+
+  // Tambahkan tombol Profil/Login
+  const authLink = document.createElement('a');
+  authLink.href = '/profile';
+
+  const icon = document.createElement('span');
+  icon.textContent = isLoggedIn() ? '👤' : '🔐';
+
+  const text = document.createElement('span');
+  text.classList.add('nav-text');
+  text.textContent = isLoggedIn() ? 'Profil' : 'Login';
+
+  authLink.appendChild(icon);
+  authLink.appendChild(text);
+
+  authLink.onclick = (e) => {
+    e.preventDefault();
+    navigateTo('/profile');
+  };
+
+  document.querySelector('.mobile-navbar').appendChild(authLink);
+
+  // Set active jika di halaman profile
+  if (path === '/profile') {
+    authLink.classList.add('active');
+  }
 }
 
-// === Fungsi: Render Halaman Login ===
+// === RENDER HALAMAN LOGIN ===
 function renderLoginPage() {
   document.getElementById('content').innerHTML = `
     <div class="auth-container">
@@ -1382,7 +1493,7 @@ function renderLoginPage() {
   `;
 }
 
-// === Fungsi: Render Halaman Register ===
+// === RENDER HALAMAN REGISTER ===
 function renderRegisterPage() {
   document.getElementById('content').innerHTML = `
     <div class="auth-container">

@@ -167,6 +167,175 @@ header {
   border-color: var(--primary-color);
 }
 
+/* === PROFIL USER === */
+.profile-container {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  text-align: center;
+  animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profile-icon {
+  font-size: 3rem;
+  color: var(--accent-color);
+  margin-bottom: 15px;
+}
+
+.profile-title {
+  font-size: 1.8rem;
+  color: var(--text-color);
+  margin-bottom: 10px;
+}
+
+.profile-welcome {
+  font-size: 1.2rem;
+  color: var(--accent-color);
+  margin-bottom: 20px;
+}
+
+.profile-info {
+  margin-bottom: 25px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.profile-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  text-align: center;
+  flex: 1;
+  max-width: 150px;
+}
+
+.profile-btn.logout {
+  background-color: #ef4444;
+  color: white;
+}
+
+.profile-btn.logout:hover {
+  background-color: #dc2626;
+}
+
+.profile-btn.home {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.profile-btn.home:hover {
+  background-color: #1a68e8;
+}
+
+/* ==============================
+   AUTH STYLES (Login & Register)
+   ============================== */
+.auth-container {
+  min-height: 70vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  animation: fadeIn 0.5s ease;
+}
+
+.auth-card {
+  background: var(--card-bg);
+  padding: 30px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  animation: slideUp 0.4s ease;
+}
+
+.auth-card .logo {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  justify-content: center;
+  gap: 10px;
+}
+
+.auth-card h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--accent-color);
+  font-size: 1.5rem;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 12px 15px;
+  margin: 8px 0;
+  border: 1px solid var(--border-color);
+  background: rgba(20, 30, 60, 0.4);
+  color: var(--text-color);
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.auth-card input::placeholder {
+  color: #80a0c0;
+}
+
+.auth-link {
+  text-align: center;
+  margin-top: 15px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.auth-link a {
+  color: var(--accent-color);
+  text-decoration: underline;
+}
+
+.auth-link a:hover {
+  color: #00d4ff;
+}
+
+/* === AUTH BUTTON DI NAVBAR === */
+.nav-auth-link {
+  margin-left: 20px;
+  font-weight: 600;
+  color: var(--accent-color);
+  border: 1px solid var(--accent-color);
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  display: inline-block;
+  text-align: center;
+}
+
+.nav-auth-link:hover,
+.nav-auth-link.active {
+  background-color: var(--accent-color);
+  color: white;
+}
+
 /* ==============================
    MOBILE SEARCH OVERLAY
    ============================== */
