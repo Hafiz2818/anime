@@ -22,40 +22,45 @@ function loadFirebaseSDK() {
       resolve(window.firebaseAuth);
       return;
     }
-    // 1. Load Firebase App (GUNAKAN -compat.js)
     const appScript = document.createElement('script');
-    appScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'; // ✅ DIPERBAIKI
+    appScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js';
     appScript.async = true;
     appScript.onload = () => {
-      // 2. Load Firebase Auth (GUNAKAN -compat.js)
       const authScript = document.createElement('script');
-      authScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'; // ✅ DIPERBAIKI
+      authScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js';
       authScript.async = true;
       authScript.onload = () => {
-        // 3. Inisialisasi Firebase
-        const firebaseConfig = {
-          apiKey: "AIzaSyDidzm-lgEddoj_d65u0Iw3KRWmjEltAbQ",
-          authDomain: "nontonanime-auth.firebaseapp.com",
-          projectId: "nontonanime-auth",
-          storageBucket: "nontonanime-auth.firebasestorage.app",
-          messagingSenderId: "289843332779",
-          appId: "1:289843332779:web:3a498ff0002cdfd26e59ee",
-          measurementId: "G-73PBHEYKPW"
-        };
-        // Inisialisasi
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
+        // 🔥 Tambahkan Firestore
+        const firestoreScript = document.createElement('script');
+        firestoreScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js';
+        firestoreScript.async = true;
+        firestoreScript.onload = () => {
+          const firebaseConfig = {
+            apiKey: "AIzaSyDidzm-lgEddoj_d65u0Iw3KRWmjEltAbQ",
+            authDomain: "nontonanime-auth.firebaseapp.com",
+            projectId: "nontonanime-auth",
+            storageBucket: "nontonanime-auth.firebasestorage.app",
+            messagingSenderId: "289843332779",
+            appId: "1:289843332779:web:3a498ff0002cdfd26e59ee",
+            measurementId: "G-73PBHEYKPW"
+          };
+          const app = firebase.initializeApp(firebaseConfig);
+          const auth = firebase.auth();
+          const db = firebase.firestore(); // Inisialisasi Firestore
 
-        // Ekspor ke window
-        window.firebaseAuth = {
-          auth,
-          createUserWithEmailAndPassword: auth.createUserWithEmailAndPassword.bind(auth),
-          signInWithEmailAndPassword: auth.signInWithEmailAndPassword.bind(auth),
-          signOut: auth.signOut.bind(auth),
-          onAuthStateChanged: auth.onAuthStateChanged.bind(auth)
+          window.firebaseAuth = {
+            auth,
+            db,
+            createUserWithEmailAndPassword: auth.createUserWithEmailAndPassword.bind(auth),
+            signInWithEmailAndPassword: auth.signInWithEmailAndPassword.bind(auth),
+            signOut: auth.signOut.bind(auth),
+            onAuthStateChanged: auth.onAuthStateChanged.bind(auth)
+          };
+          firebaseInitialized = true;
+          resolve(window.firebaseAuth);
         };
-        firebaseInitialized = true;
-        resolve(window.firebaseAuth);
+        firestoreScript.onerror = () => reject(new Error('Gagal load Firebase Firestore SDK'));
+        document.head.appendChild(firestoreScript);
       };
       authScript.onerror = () => reject(new Error('Gagal load Firebase Auth SDK'));
       document.head.appendChild(authScript);
@@ -418,6 +423,71 @@ async function loadReportPage() {
   renderReportPage();
 }
 
+// === Fungsi: Simpan Riwayat ke Firestore ===
+async function syncHistoryToFirestore() {
+  if (!isLoggedIn()) return;
+
+  try {
+    await loadFirebaseSDK();
+    const user = window.firebaseAuth.auth.currentUser;
+    if (!user) return;
+
+    const db = window.firebaseAuth.db;
+    const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
+
+    const batch = db.batch();
+    const historyRef = db.collection('users').doc(user.uid).collection('watchHistory');
+
+    // Hapus semua dokumen lama
+    const oldDocs = await historyRef.get();
+    oldDocs.forEach(doc => batch.delete(doc.ref));
+
+    // Tambahkan yang baru
+    history.forEach(item => {
+      batch.set(historyRef.doc(item.animeId), item);
+    });
+
+    await batch.commit();
+    console.log('✅ Riwayat disinkronkan ke Firestore');
+  } catch (error) {
+    console.error('❌ Gagal sinkronisasi ke Firestore:', error);
+  }
+}
+
+// === Fungsi: Ambil Riwayat dari Firestore Saat Login ===
+async function downloadHistoryFromFirestore() {
+  if (!isLoggedIn()) return;
+
+  try {
+    await loadFirebaseSDK();
+    const user = window.firebaseAuth.auth.currentUser;
+    if (!user) return;
+
+    const db = window.firebaseAuth.db;
+    const historyRef = db.collection('users').doc(user.uid).collection('watchHistory');
+    const snapshot = await historyRef.get();
+
+    const firestoreHistory = [];
+    snapshot.forEach(doc => {
+      firestoreHistory.push(doc.data());
+    });
+
+    // Gabungkan dengan local history
+    const localHistory = JSON.parse(localStorage.getItem('watchHistory')) || [];
+    const combined = [...firestoreHistory, ...localHistory];
+
+    // Hapus duplikat & urutkan
+    const unique = Array.from(new Map(
+      combined.map(item => [item.animeId, item])
+    ).values()).sort((a, b) => b.timestamp - a.timestamp);
+
+    localStorage.setItem('watchHistory', JSON.stringify(unique.slice(0, 50)));
+    console.log('✅ Riwayat diunduh dari Firestore');
+  } catch (error) {
+    console.error('❌ Gagal ambil riwayat:', error);
+  }
+}
+
 // === Fungsi Rendering ===
 function renderProfilePage() {
   const contentElement = document.getElementById('content');
@@ -426,28 +496,26 @@ function renderProfilePage() {
     const username = userEmail.split('@')[0];
     const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
 
-    // Fungsi untuk menghapus satu item
+    // Fungsi hapus manual
     const deleteItem = (animeId) => {
-      const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
       const updatedHistory = history.filter(item => item.animeId !== animeId);
       localStorage.setItem('watchHistory', JSON.stringify(updatedHistory));
-      renderProfilePage(); // Render ulang halaman setelah dihapus
+      syncHistoryToFirestore(); // Sinkron ulang
+      renderProfilePage();
     };
 
-    // Fungsi untuk menghapus semua item
     const clearAllHistory = () => {
-      if (confirm('Apakah Anda yakin ingin menghapus semua riwayat tontonan?')) {
+      if (confirm('Hapus semua riwayat?')) {
         localStorage.removeItem('watchHistory');
-        renderProfilePage(); // Render ulang halaman
+        syncHistoryToFirestore(); // Hapus juga di Firestore
+        renderProfilePage();
       }
     };
 
     contentElement.innerHTML = `
       <div class="profile-container">
         <div class="profile-header">
-          <div class="profile-avatar">
-            <span class="avatar-initial">${username.charAt(0).toUpperCase()}</span>
-          </div>
+          <div class="profile-avatar"><span class="avatar-initial">${username.charAt(0).toUpperCase()}</span></div>
           <h2 class="profile-name">${username}</h2>
           <div class="profile-actions">
             <button onclick="navigateTo('/')" class="btn btn-secondary">Beranda</button>
@@ -462,41 +530,27 @@ function renderProfilePage() {
           <!-- History -->
           <div id="history" class="tab-content active">
             <h3>Daftar Anime yang Ditonton</h3>
-            <div class="history-controls">
-              ${history.length > 0 ? `
-                <button onclick="clearAllHistory()" class="btn btn-warning btn-sm">Hapus Semua</button>
-              ` : ''}
-            </div>
             ${history.length > 0 ? `
+              <button onclick="clearAllHistory()" class="btn btn-warning">Hapus Semua</button>
               <div class="anime-grid">
                 ${history.map(anime => `
-                  <div class="anime-card history-item">
+                  <div class="anime-card">
                     <a href="/anime/${anime.animeId}">
                       ${anime.poster ? `
                         <img src="${anime.poster.trim()}" alt="${anime.title}" class="anime-thumbnail">
                       ` : `
-                        <div class="anime-thumbnail-placeholder">
-                          <span>${anime.title.charAt(0)}</span>
-                        </div>
+                        <div class="anime-thumbnail-placeholder"><span>${anime.title.charAt(0)}</span></div>
                       `}
                       <div class="anime-info">
                         <h3 class="anime-title">${truncateTitle(anime.title)}</h3>
                         <div class="episode-info">Episode ${anime.episode}</div>
-                        <button 
-                          onclick="event.preventDefault(); deleteItem('${anime.animeId}');"
-                          class="btn btn-delete btn-sm">
-                          Hapus
-                        </button>
+                        <button onclick="event.preventDefault(); deleteItem('${anime.animeId}')" class="btn btn-delete">Hapus</button>
                       </div>
                     </a>
                   </div>
                 `).join('')}
               </div>
-            ` : `
-              <div class="no-history">
-                <p>Belum ada riwayat tayang.</p>
-              </div>
-            `}
+            ` : `<p>Belum ada riwayat.</p>`}
           </div>
           <!-- About -->
           <div id="about" class="tab-content">
@@ -505,21 +559,22 @@ function renderProfilePage() {
               <p><strong>Email:</strong> ${userEmail}</p>
               <p><strong>Status:</strong> Member Aktif</p>
               <p><strong>Daftar:</strong> ${new Date().toLocaleDateString('id-ID')}</p>
-              <p><strong>Platform:</strong> NontonAnime</p>
             </div>
           </div>
         </div>
       </div>
     `;
 
-    // Tambahkan fungsi ke window agar bisa dipanggil dari onclick
     window.deleteItem = deleteItem;
     window.clearAllHistory = clearAllHistory;
 
-    // Setup tab switching
+    // Tab switching
     document.querySelectorAll('.tab-button').forEach(button => {
       button.addEventListener('click', () => {
-        // ... kode tab switching
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        button.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(button.getAttribute('data-tab')).classList.add('active');
       });
     });
   } else {
@@ -556,32 +611,25 @@ function renderProfilePage() {
 }
 
 // === Fungsi: Tambah ke Riwayat Tontonan ===
-// === Fungsi: Tambah ke Riwayat Tontonan ===
 function addToWatchHistory(animeId, title, poster, episode = '1') {
   const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
-  const timestamp = Date.now(); // Waktu saat ditambahkan
-  const newItem = {
-    animeId,
-    title,
-    poster,
-    episode,
-    timestamp
-  };
+  const timestamp = Date.now();
+  const newItem = { animeId, title, poster, episode, timestamp };
 
-  // Cek apakah animeId sudah ada di riwayat
   const existingIndex = history.findIndex(item => item.animeId === animeId);
   if (existingIndex > -1) {
-    // Update item yang sudah ada (misalnya, episode terbaru)
     history[existingIndex] = newItem;
   } else {
-    // Tambahkan item baru
     history.push(newItem);
   }
 
-  // Urutkan dari yang terbaru
   history.sort((a, b) => b.timestamp - a.timestamp);
-  // Batasi jumlah item (opsional)
   localStorage.setItem('watchHistory', JSON.stringify(history.slice(0, 50)));
+
+  // ⚡ Sinkronkan ke Firestore jika sudah login
+  if (isLoggedIn()) {
+    syncHistoryToFirestore();
+  }
 }
 
 function loadEmailJS() { // ✅ Ganti IIFE menjadi fungsi biasa
@@ -1746,10 +1794,12 @@ async function loginUser() {
       email,
       password
     );
-
+    
     const token = await user.getIdToken();
     localStorage.setItem('firebaseToken', token);
     localStorage.setItem('userEmail', email);
+
+    await downloadHistoryFromFirestore();
 
     alert('Login berhasil!');
     navigateTo('/');
