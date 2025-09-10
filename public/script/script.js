@@ -1794,29 +1794,16 @@ async function loginUser() {
       email,
       password
     );
-    
+
     const token = await user.getIdToken();
     localStorage.setItem('firebaseToken', token);
     localStorage.setItem('userEmail', email);
 
-    const unsubscribe = window.firebaseAuth.onAuthStateChanged(window.firebaseAuth.auth, async (currentUser) => {
-      if (currentUser && currentUser.uid === user.uid) {
-        // User sudah benar-benar login dan statusnya stabil
-        console.log('✅ Status login stabil. Mengunduh riwayat dari Firestore...');
-        
-        // Tambahkan penundaan kecil (200ms) untuk memberi waktu ekstra pada SDK
+    const unsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
+      if (user) {
         setTimeout(async () => {
-          try {
-            await downloadHistoryFromFirestore();
-            console.log('✅ Riwayat berhasil diunduh.');
-          } catch (error) {
-            console.error('❌ Gagal mengunduh riwayat meskipun login stabil:', error);
-            // Tetap lanjutkan, mungkin coba lagi nanti
-          }
-        }, 200); // Penundaan 200ms
-
-        // Hentikan listener setelah selesai
-        unsubscribe();
+          await downloadHistoryFromFirestore();
+        }, 200);
       }
     });
 
