@@ -21,12 +21,12 @@ function loadFirebaseSDK() {
       resolve(window.firebaseAuth);
       return;
     }
-    // 1. Load Firebase App (versi compat/UMD)
+    // 1. Load Firebase App (GUNAKAN -compat.js)
     const appScript = document.createElement('script');
     appScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'; // <-- Ganti di sini
     appScript.async = true;
     appScript.onload = () => {
-      // 2. Load Firebase Auth (versi compat/UMD)
+      // 2. Load Firebase Auth (GUNAKAN -compat.js)
       const authScript = document.createElement('script');
       authScript.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'; // <-- Ganti di sini
       authScript.async = true;
