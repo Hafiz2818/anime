@@ -29,11 +29,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Panggil saat halaman dimuat dan setiap kali status login berubah
   updateFABVisibility();
-  window.updateAuthUI = function() {
-    // ... kode updateAuthUI Anda ...
+  window.updateAuthUI = function () {
     updateFABVisibility();
   };
 });
+
+const ADMIN_EMAILS = [
+  'hapisnovalrianto@gmail.com'
+]
+function isAdmin() {
+  if (!isLoggedIn()) return false;
+  const userEmail = localStorage.getItem('userEmail');
+  return ADMIN_EMAILS.includes(userEmail);
+}
 
 // === Cek apakah user sudah login ===
 function isLoggedIn() {
@@ -274,6 +282,8 @@ function handleRoute() {
     renderProfilePage();
   } else if (path === '/history') {
     renderHistoryPage();
+  } else if (path === '/admin') {
+    renderAdminPage();
   } else {
     show404();
   }
@@ -527,8 +537,8 @@ async function loginUser() {
     localStorage.setItem('firebaseToken', token);
     localStorage.setItem('userEmail', email);
 
-    alert('Login berhasil!');
     navigateTo('/');
+    location.reload();
   } catch (error) {
     console.error('Error login:', error);
     let msg = 'Gagal login: ';
@@ -551,8 +561,8 @@ async function logoutUser() {
     await loadFirebaseSDK();
     await window.firebaseAuth.signOut();
     localStorage.removeItem('firebaseToken');
-    alert('Logout berhasil');
     navigateTo('/');
+    location.reload();
   } catch (error) {
     alert('Gagal logout: ' + error.message);
   }
@@ -565,7 +575,7 @@ async function loadReportPage() {
 // === Fungsi: Render Halaman Profil (Tab History & Tentang) ===
 function renderProfilePage() {
   const contentElement = document.getElementById('content');
-  
+
   if (isLoggedIn()) {
     const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
     const username = userEmail.split('@')[0];
@@ -579,7 +589,6 @@ function renderProfilePage() {
             <span class="avatar-initial">${username.charAt(0).toUpperCase()}</span>
           </div>
           <h2 class="profile-name">${username}</h2>
-          <p class="profile-status">Rakyat Jakarta</p>
           <div class="profile-actions">
             <button onclick="navigateTo('/')" class="btn btn-secondary">Beranda</button>
             <button onclick="logoutUser()" class="btn btn-danger">Logout</button>
@@ -609,7 +618,7 @@ function renderProfilePage() {
     document.querySelectorAll('.tab-button').forEach(button => {
       button.addEventListener('click', () => {
         const tab = button.getAttribute('data-tab');
-        
+
         // Update UI tab
         document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
         button.classList.add('active');
@@ -638,10 +647,64 @@ function renderProfilePage() {
   }
 }
 
+// === Fungsi: Render Halaman Admin ===
+function renderAdminPage() {
+  const contentElement = document.getElementById('content');
+
+  if (!isLoggedIn()) {
+    contentElement.innerHTML = `
+      <div class="error-message">
+        <h2>Harus Login</h2>
+        <p>Silakan login terlebih dahulu.</p>
+        <button onclick="navigateTo('/login')" class="btn">Login Sekarang</button>
+      </div>
+    `;
+    return;
+  }
+
+  if (!isAdmin()) {
+    contentElement.innerHTML = `
+      <div class="error-message">
+        <h2>Akses Ditolak</h2>
+        <p>Anda tidak memiliki izin untuk mengakses halaman ini.</p>
+        <button onclick="navigateTo('/profile')" class="btn">Kembali ke Profil</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Tampilkan dashboard admin
+  contentElement.innerHTML = `
+    <div class="admin-container">
+      <h1>🛠️ Dashboard Admin</h1>
+      
+      <div class="admin-menu">
+        <a href="/report" class="admin-card">
+          <span class="card-icon">📬</span>
+          <h3>Laporan Bug & Saran</h3>
+          <p>Kelola semua laporan dari pengguna</p>
+        </a>
+        
+        <a href="/schedule" class="admin-card">
+          <span class="card-icon">📅</span>
+          <h3>Jadwal Rilis</h3>
+          <p>Atur jadwal tayang anime terbaru</p>
+        </a>
+
+        <a href="#" class="admin-card" onclick="alert('Fitur dalam pengembangan'); return false;">
+          <span class="card-icon">🎨</span>
+          <h3>Pengaturan Tema</h3>
+          <p>Kustomisasi tampilan situs</p>
+        </a>
+      </div>
+    </div>
+  `;
+}
+
 // === Fungsi: Render Halaman Riwayat Terpisah ===
 function renderHistoryPage() {
   const contentElement = document.getElementById('content');
-  
+
   // Hanya pengguna yang login yang bisa melihat riwayat
   if (!isLoggedIn()) {
     contentElement.innerHTML = `
@@ -715,7 +778,7 @@ function renderHistoryPage() {
   window.clearAllHistory = clearAllHistory;
 }
 
-function loadEmailJS() { 
+function loadEmailJS() {
   return new Promise((resolve, reject) => {
     if (window.emailjs) {
       resolve(window.emailjs);
@@ -1804,7 +1867,26 @@ function updateAuthUI() {
     profileContainer.appendChild(button);
   }
 
-  // Update Mobile Nav (Opsional: tetap tampilkan teks di mobile)
+  if (isLoggedIn() && isAdmin()) {
+    const navLinks = document.querySelector('.nav-links');
+    if (navLinks && !document.querySelector('.admin-nav-link')) {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#';
+      a.textContent = 'Admin';
+      a.classList.add('admin-nav-link');
+      a.onclick = (e) => {
+        e.preventDefault();
+        navigateTo('/admin');
+      };
+      li.appendChild(a);
+      navLinks.appendChild(li);
+    }
+  } else {
+    const adminLink = document.querySelector('.admin-nav-item');
+    if (adminLink) adminLink.remove();
+  }
+
   updateMobileNav();
 }
 
@@ -1820,14 +1902,14 @@ function addToWatchHistory(animeId, title, poster, episode = '1') {
     // Ambil riwayat dari localStorage
     const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
     const timestamp = Date.now();
-    
+
     // Buat item baru
-    const newItem = { 
-      animeId, 
-      title, 
+    const newItem = {
+      animeId,
+      title,
       poster: poster?.trim() || null, // Pastikan poster string aman
       episode: String(episode), // Pastikan episode dalam bentuk string
-      timestamp 
+      timestamp
     };
 
     // Cek duplikat berdasarkan animeId
@@ -1844,7 +1926,7 @@ function addToWatchHistory(animeId, title, poster, episode = '1') {
     history.sort((a, b) => b.timestamp - a.timestamp);
     // Batasi jumlah item (opsional)
     localStorage.setItem('watchHistory', JSON.stringify(history.slice(0, 50)));
-    
+
     console.log('✅ Riwayat berhasil disimpan:', title);
   } catch (error) {
     console.error('❌ Gagal menyimpan riwayat:', error);
@@ -1860,9 +1942,9 @@ function cleanupOldHistory() {
   // Cek apakah sudah lebih dari 2 bulan sejak pembersihan terakhir
   if (!lastCleanup || (now - parseInt(lastCleanup)) > twoMonthsInMs) {
     console.log('🧹 Membersihkan riwayat tontonan yang sudah lebih dari 2 bulan...');
-    
+
     const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
-    
+
     // Jika tidak ada data, tidak perlu dibersihkan
     if (history.length === 0) {
       localStorage.setItem('lastHistoryCleanup', now.toString());
@@ -1877,9 +1959,9 @@ function cleanupOldHistory() {
     if (cleanedHistory.length !== history.length) {
       localStorage.setItem('watchHistory', JSON.stringify(cleanedHistory));
     }
-    
+
     localStorage.setItem('lastHistoryCleanup', now.toString()); // Simpan waktu pembersihan terakhir
-    
+
     console.log(`✅ Pembersihan selesai. ${cleanedHistory.length} item tersisa.`);
   }
 }
