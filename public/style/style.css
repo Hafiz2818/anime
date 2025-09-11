@@ -67,10 +67,18 @@ header {
 
 .navbar-top {
   display: flex;
-  justify-content: space-between;
+  
+  position: relative;
   align-items: center;
   padding: 12px 5%;
   border-bottom: 1px solid var(--border-color);
+}
+
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* Jarak antara search dan profil */
+  margin-left: auto; /* Mendorong grup ke pojok kanan */
 }
 
 .logo {
@@ -509,12 +517,35 @@ header {
   transition: all 0.3s ease;
   display: inline-block;
   text-align: center;
+  white-space: nowrap;
 }
 
 .nav-auth-link:hover,
 .nav-auth-link.active {
   background-color: var(--accent-color);
   color: white;
+}
+
+.profile-nav-button {
+  background-color: transparent;
+  border: none;
+  color: var(--accent-color);
+  font-size: 1.5rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  margin-left: 10px; /* ✅ Tambahkan jarak ini */
+}
+
+.profile-nav-button:hover {
+  background-color: rgba(0, 184, 255, 0.1);
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(0, 184, 255, 0.2);
 }
 
 /* ==============================
@@ -1795,6 +1826,39 @@ main {
   font-size: 0.7rem;
 }
 
+/* === FLOATING ACTION BUTTON (FAB) UNTUK MOBILE === */
+.fab-history {
+  position: fixed;
+  bottom: 80px; /* Di atas mobile navbar */
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  transition: all 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fab-history.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fab-history:hover {
+  transform: scale(1.1);
+  background-color: #00a8e8;
+}
+
 /* ==============================
    FOOTER
    ============================== */
@@ -1832,9 +1896,16 @@ footer:hover .footer-content p {
   .mobile-navbar {
     display: none !important;
   }
+  .fab-history {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {
+  .fab-history {
+    display: flex;
+  }
+
   .profile-container {
     margin: 20px 10px;
     padding: 15px;

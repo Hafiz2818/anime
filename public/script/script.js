@@ -6,6 +6,33 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('popstate', handleRoute);
   updateAuthUI();
   cleanupOldHistory();
+
+
+  const fab = document.createElement('button');
+  fab.classList.add('fab-history');
+  fab.innerHTML = '📚';
+  fab.title = 'Riwayat Tontonan';
+  fab.onclick = (e) => {
+    e.preventDefault();
+    navigateTo('/history');
+  };
+  document.body.appendChild(fab);
+
+  // ✅ TAMPILKAN FAB JIKA SUDAH LOGIN
+  function updateFABVisibility() {
+    if (isLoggedIn()) {
+      fab.classList.add('show');
+    } else {
+      fab.classList.remove('show');
+    }
+  }
+
+  // Panggil saat halaman dimuat dan setiap kali status login berubah
+  updateFABVisibility();
+  window.updateAuthUI = function() {
+    // ... kode updateAuthUI Anda ...
+    updateFABVisibility();
+  };
 });
 
 // === Cek apakah user sudah login ===
@@ -178,25 +205,6 @@ function setupMobileSearch() {
   });
 }
 
-// === Fungsi: Hapus Riwayat Otomatis Setiap 2 Bulan ===
-function cleanupOldHistory() {
-  const now = Date.now();
-  const twoMonthsInMs = 60 * 24 * 60 * 60 * 1000; // 60 hari dalam milidetik
-  const lastCleanup = localStorage.getItem('lastHistoryCleanup');
-
-  // Jika belum pernah cleanup atau sudah lebih dari 2 bulan
-  if (!lastCleanup || (now - parseInt(lastCleanup)) > twoMonthsInMs) {
-    console.log('Membersihkan riwayat lama...');
-    const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
-    const cleanedHistory = history.filter(item => {
-      return (now - item.timestamp) <= twoMonthsInMs; // Hanya simpan yang kurang dari 2 bulan
-    });
-    localStorage.setItem('watchHistory', JSON.stringify(cleanedHistory));
-    localStorage.setItem('lastHistoryCleanup', now.toString()); // Simpan waktu cleanup terakhir
-    console.log('Pembersihan riwayat selesai.');
-  }
-}
-
 function navigateTo(path, params = {}) {
   const url = new URL(path, window.location.origin);
   Object.keys(params).forEach(key => {
@@ -264,6 +272,8 @@ function handleRoute() {
     renderRegisterPage();
   } else if (path === '/profile') {
     renderProfilePage();
+  } else if (path === '/history') {
+    renderHistoryPage();
   } else {
     show404();
   }
@@ -372,25 +382,23 @@ async function loadEpisode(episodeId) {
     renderEpisodePage(data);
     setupQualityTabs();
 
-    // ✅ Hapus pengecekan info.title dan info.thumbnail
     if (data?.ok && data.data?.animeId) {
-      const animeTitle = data.data.title.replace(/ Episode \d+ Subtitle Indonesia$/, '');
+      const animeTitle = data.data.info?.title || data.data.title.replace(/ Episode \d+ .*/, '');
       const episodeNumber = data.data.title.match(/Episode (\d+)/)?.[1] || '1';
+      // ✅ Gunakan animeId dari respons API
       const animeId = data.data.animeId;
+
+      // Ambil poster dari info jika tersedia
       let animePoster = null;
-
-      const storedPoster = localStorage.getItem(`animePoster_${animeId}`);
-      if (storedPoster) {
-        animePoster = storedPoster;
+      if (data.data.info?.thumbnail) {
+        animePoster = data.data.info.thumbnail.trim();
       }
 
-      if (isLoggedIn()) {
-        const storedPoster = localStorage.getItem(`animePoster_${animeId}`);
-        addToWatchHistory(animeId, animeTitle, animePoster, episodeNumber);
-      }
+      // ✅ SIMPAN KE LOCAL STORAGE
+      addToWatchHistory(animeId, animeTitle, animePoster, episodeNumber);
     }
   } catch (error) {
-    showErrorMessage(`Gagal memuat episode "${episodeId}". Silakan coba lagi nanti.`);
+    showErrorMessage(`Gagal memuat episode "${episodeId}".`);
   }
 }
 
@@ -419,139 +427,170 @@ async function loadBatch(batchId) {
   }
 }
 
+// === Fungsi: Register User ===
+async function registerUser() {
+  const emailInput = document.getElementById('regEmail');
+  const passwordInput = document.getElementById('regPassword');
+  const usernameInput = document.getElementById('regUsername');
+
+  if (!emailInput || !passwordInput || !usernameInput) {
+    alert('Form tidak ditemukan');
+    return;
+  }
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+  const username = usernameInput.value.trim();
+
+  if (!email || !password || !username) {
+    alert('Semua field wajib diisi');
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    alert('Format email tidak valid');
+    return;
+  }
+
+  try {
+    await loadFirebaseSDK();
+
+    if (!window.firebaseAuth || !window.firebaseAuth.auth) {
+      throw new Error('Firebase Auth tidak tersedia');
+    }
+
+    // ✅ Hanya gunakan email dan password
+    const { user } = await window.firebaseAuth.createUserWithEmailAndPassword(
+      email,
+      password
+    );
+
+    const token = await user.getIdToken();
+    localStorage.setItem('firebaseToken', token);
+    localStorage.setItem('userEmail', email);
+
+    alert('Registrasi berhasil!');
+    navigateTo('/');
+  } catch (error) {
+    console.error('Error registrasi:', error);
+    let msg = 'Gagal: ';
+    if (error.code === 'auth/email-already-in-use') {
+      msg += 'Email sudah digunakan';
+    } else if (error.code === 'auth/weak-password') {
+      msg += 'Password terlalu lemah (minimal 6 karakter)';
+    } else {
+      msg += error.message;
+    }
+    alert(msg);
+  }
+}
+
+// === Fungsi: Login User ===
+async function loginUser() {
+  const emailInput = document.getElementById('loginEmail');
+  const passwordInput = document.getElementById('loginPassword');
+
+  if (!emailInput || !passwordInput) {
+    alert('Form login tidak ditemukan');
+    return;
+  }
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) {
+    alert('Email dan password wajib diisi');
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    alert('Format email tidak valid');
+    return;
+  }
+
+  try {
+    await loadFirebaseSDK();
+
+    if (!window.firebaseAuth || !window.firebaseAuth.auth) {
+      throw new Error('Firebase Auth tidak tersedia');
+    }
+
+    // ✅ Hanya gunakan email dan password
+    const { user } = await window.firebaseAuth.signInWithEmailAndPassword(
+      email,
+      password
+    );
+
+    const token = await user.getIdToken();
+    localStorage.setItem('firebaseToken', token);
+    localStorage.setItem('userEmail', email);
+
+    alert('Login berhasil!');
+    navigateTo('/');
+  } catch (error) {
+    console.error('Error login:', error);
+    let msg = 'Gagal login: ';
+    if (error.code === 'auth/user-not-found') {
+      msg += 'Email tidak ditemukan';
+    } else if (error.code === 'auth/wrong-password') {
+      msg += 'Password salah';
+    } else if (error.code === 'auth/invalid-email') {
+      msg += 'Email tidak valid';
+    } else {
+      msg += error.message;
+    }
+    alert(msg);
+  }
+}
+
+// === Fungsi: Logout ===
+async function logoutUser() {
+  try {
+    await loadFirebaseSDK();
+    await window.firebaseAuth.signOut();
+    localStorage.removeItem('firebaseToken');
+    alert('Logout berhasil');
+    navigateTo('/');
+  } catch (error) {
+    alert('Gagal logout: ' + error.message);
+  }
+}
+
 async function loadReportPage() {
   renderReportPage();
 }
 
-// === Fungsi: Simpan Riwayat ke Firestore ===
-async function syncHistoryToFirestore() {
-  if (!isLoggedIn()) return;
-
-  try {
-    await loadFirebaseSDK();
-    const user = window.firebaseAuth.auth.currentUser;
-    if (!user) return;
-
-    const db = window.firebaseAuth.db;
-    const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
-
-    const batch = db.batch();
-    const historyRef = db.collection('users').doc(user.uid).collection('watchHistory');
-
-    // Hapus semua dokumen lama
-    const oldDocs = await historyRef.get();
-    oldDocs.forEach(doc => batch.delete(doc.ref));
-
-    // Tambahkan yang baru
-    history.forEach(item => {
-      batch.set(historyRef.doc(item.animeId), item);
-    });
-
-    await batch.commit();
-    console.log('✅ Riwayat disinkronkan ke Firestore');
-  } catch (error) {
-    console.error('❌ Gagal sinkronisasi ke Firestore:', error);
-  }
-}
-
-// === Fungsi: Ambil Riwayat dari Firestore Saat Login ===
-async function downloadHistoryFromFirestore() {
-  if (!isLoggedIn()) return;
-
-  try {
-    await loadFirebaseSDK();
-    const user = window.firebaseAuth.auth.currentUser;
-    if (!user) return;
-
-    const db = window.firebaseAuth.db;
-    const historyRef = db.collection('users').doc(user.uid).collection('watchHistory');
-    const snapshot = await historyRef.get();
-
-    const firestoreHistory = [];
-    snapshot.forEach(doc => {
-      firestoreHistory.push(doc.data());
-    });
-
-    // Gabungkan dengan local history
-    const localHistory = JSON.parse(localStorage.getItem('watchHistory')) || [];
-    const combined = [...firestoreHistory, ...localHistory];
-
-    // Hapus duplikat & urutkan
-    const unique = Array.from(new Map(
-      combined.map(item => [item.animeId, item])
-    ).values()).sort((a, b) => b.timestamp - a.timestamp);
-
-    localStorage.setItem('watchHistory', JSON.stringify(unique.slice(0, 50)));
-    console.log('✅ Riwayat diunduh dari Firestore');
-  } catch (error) {
-    console.error('❌ Gagal ambil riwayat:', error);
-  }
-}
-
-// === Fungsi Rendering ===
+// === Fungsi: Render Halaman Profil (Tab History & Tentang) ===
 function renderProfilePage() {
   const contentElement = document.getElementById('content');
+  
   if (isLoggedIn()) {
     const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
     const username = userEmail.split('@')[0];
+    // Ambil riwayat langsung dari localStorage
     const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
-
-    // Fungsi hapus manual
-    const deleteItem = (animeId) => {
-      const updatedHistory = history.filter(item => item.animeId !== animeId);
-      localStorage.setItem('watchHistory', JSON.stringify(updatedHistory));
-      syncHistoryToFirestore(); // Sinkron ulang
-      renderProfilePage();
-    };
-
-    const clearAllHistory = () => {
-      if (confirm('Hapus semua riwayat?')) {
-        localStorage.removeItem('watchHistory');
-        syncHistoryToFirestore(); // Hapus juga di Firestore
-        renderProfilePage();
-      }
-    };
 
     contentElement.innerHTML = `
       <div class="profile-container">
         <div class="profile-header">
-          <div class="profile-avatar"><span class="avatar-initial">${username.charAt(0).toUpperCase()}</span></div>
+          <div class="profile-avatar">
+            <span class="avatar-initial">${username.charAt(0).toUpperCase()}</span>
+          </div>
           <h2 class="profile-name">${username}</h2>
+          <p class="profile-status">Rakyat Jakarta</p>
           <div class="profile-actions">
             <button onclick="navigateTo('/')" class="btn btn-secondary">Beranda</button>
             <button onclick="logoutUser()" class="btn btn-danger">Logout</button>
           </div>
         </div>
+
         <div class="profile-tabs">
-          <button class="tab-button active" data-tab="history">History</button>
           <button class="tab-button" data-tab="about">Tentang</button>
         </div>
+
         <div class="profile-content">
-          <!-- History -->
-          <div id="history" class="tab-content active">
-            <h3>Daftar Anime yang Ditonton</h3>
-            ${history.length > 0 ? `
-              <button onclick="clearAllHistory()" class="btn btn-warning">Hapus Semua</button>
-              <div class="anime-grid">
-                ${history.map(anime => `
-                  <div class="anime-card">
-                    <a href="/anime/${anime.animeId}">
-                      ${anime.poster ? `
-                        <img src="${anime.poster.trim()}" alt="${anime.title}" class="anime-thumbnail">
-                      ` : `
-                        <div class="anime-thumbnail-placeholder"><span>${anime.title.charAt(0)}</span></div>
-                      `}
-                      <div class="anime-info">
-                        <h3 class="anime-title">${truncateTitle(anime.title)}</h3>
-                        <div class="episode-info">Episode ${anime.episode}</div>
-                        <button onclick="event.preventDefault(); deleteItem('${anime.animeId}')" class="btn btn-delete">Hapus</button>
-                      </div>
-                    </a>
-                  </div>
-                `).join('')}
-              </div>
-            ` : `<p>Belum ada riwayat.</p>`}
-          </div>
           <!-- About -->
           <div id="about" class="tab-content">
             <h3>Tentang Saya</h3>
@@ -559,25 +598,30 @@ function renderProfilePage() {
               <p><strong>Email:</strong> ${userEmail}</p>
               <p><strong>Status:</strong> Member Aktif</p>
               <p><strong>Daftar:</strong> ${new Date().toLocaleDateString('id-ID')}</p>
+              <p><strong>Platform:</strong> NontonAnime</p>
             </div>
           </div>
         </div>
       </div>
     `;
 
-    window.deleteItem = deleteItem;
-    window.clearAllHistory = clearAllHistory;
-
-    // Tab switching
+    // Setup tab switching
     document.querySelectorAll('.tab-button').forEach(button => {
       button.addEventListener('click', () => {
+        const tab = button.getAttribute('data-tab');
+        
+        // Update UI tab
         document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
         button.classList.add('active');
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById(button.getAttribute('data-tab')).classList.add('active');
+        document.getElementById(tab).classList.add('active');
       });
     });
+
+    // Update navbar mobile
+    updateMobileNav();
   } else {
+    // Belum login
     contentElement.innerHTML = `
       <div class="profile-container">
         <div class="profile-icon">🔐</div>
@@ -592,47 +636,86 @@ function renderProfilePage() {
       </div>
     `;
   }
-
-  // Setup tab switching
-  document.querySelectorAll('.tab-button').forEach(button => {
-    button.addEventListener('click', () => {
-      const tab = button.getAttribute('data-tab');
-      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-      button.classList.add('active');
-
-      document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-      });
-      document.getElementById(tab).classList.add('active');
-    });
-  });
-  // Update Mobile Nav
-  updateMobileNav();
 }
 
-// === Fungsi: Tambah ke Riwayat Tontonan ===
-function addToWatchHistory(animeId, title, poster, episode = '1') {
+// === Fungsi: Render Halaman Riwayat Terpisah ===
+function renderHistoryPage() {
+  const contentElement = document.getElementById('content');
+  
+  // Hanya pengguna yang login yang bisa melihat riwayat
+  if (!isLoggedIn()) {
+    contentElement.innerHTML = `
+      <div class="error-message">
+        <h2>Harus Login</h2>
+        <p>Silakan login terlebih dahulu untuk melihat riwayat tontonan.</p>
+        <button onclick="navigateTo('/login')" class="btn">Login Sekarang</button>
+      </div>
+    `;
+    return;
+  }
+
   const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
-  const timestamp = Date.now();
-  const newItem = { animeId, title, poster, episode, timestamp };
 
-  const existingIndex = history.findIndex(item => item.animeId === animeId);
-  if (existingIndex > -1) {
-    history[existingIndex] = newItem;
-  } else {
-    history.push(newItem);
-  }
+  contentElement.innerHTML = `
+    <div class="history-container">
+      <div class="page-title">
+        <h1>📚 Daftar Anime yang Ditonton</h1>
+        ${history.length > 0 ? `
+          <button onclick="clearAllHistory()" class="btn btn-warning btn-sm">Hapus Semua</button>
+        ` : ''}
+      </div>
 
-  history.sort((a, b) => b.timestamp - a.timestamp);
-  localStorage.setItem('watchHistory', JSON.stringify(history.slice(0, 50)));
+      ${history.length > 0 ? `
+        <div class="anime-grid">
+          ${history.map(anime => `
+            <div class="anime-card">
+              <a href="/anime/${anime.animeId}">
+                ${anime.poster ? `
+                  <img src="${anime.poster}" alt="${anime.title}" class="anime-thumbnail">
+                ` : `
+                  <div class="anime-thumbnail-placeholder"><span>${anime.title.charAt(0)}</span></div>
+                `}
+                <div class="anime-info">
+                  <h3 class="anime-title">${truncateTitle(anime.title)}</h3>
+                  <div class="episode-info">Episode ${anime.episode}</div>
+                  <button 
+                    onclick="event.preventDefault(); deleteItem('${anime.animeId}');"
+                    class="btn btn-delete btn-sm">
+                    Hapus
+                  </button>
+                </div>
+              </a>
+            </div>
+          `).join('')}
+        </div>
+      ` : `
+        <div class="no-history">
+          <p>Belum ada riwayat tontonan.</p>
+        </div>
+      `}
+    </div>
+  `;
 
-  // ⚡ Sinkronkan ke Firestore jika sudah login
-  if (isLoggedIn()) {
-    syncHistoryToFirestore();
-  }
+  // Fungsi penghapusan manual
+  const deleteItem = (animeId) => {
+    const updatedHistory = history.filter(item => item.animeId !== animeId);
+    localStorage.setItem('watchHistory', JSON.stringify(updatedHistory));
+    renderHistoryPage(); // Refresh halaman
+  };
+
+  const clearAllHistory = () => {
+    if (confirm('Apakah Anda yakin ingin menghapus semua riwayat tontonan?')) {
+      localStorage.removeItem('watchHistory');
+      renderHistoryPage(); // Refresh halaman
+    }
+  };
+
+  // Tambahkan ke window agar bisa dipanggil oleh onclick
+  window.deleteItem = deleteItem;
+  window.clearAllHistory = clearAllHistory;
 }
 
-function loadEmailJS() { // ✅ Ganti IIFE menjadi fungsi biasa
+function loadEmailJS() { 
   return new Promise((resolve, reject) => {
     if (window.emailjs) {
       resolve(window.emailjs);
@@ -640,7 +723,7 @@ function loadEmailJS() { // ✅ Ganti IIFE menjadi fungsi biasa
     }
 
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js'; // ✅ HAPUS SPASI EKSTRA
+    script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
     script.async = true;
     script.onload = () => {
       if (window.emailjs) {
@@ -1699,172 +1782,106 @@ function renderRegisterPage() {
   `;
 }
 
-// === Fungsi: Register User ===
-async function registerUser() {
-  const emailInput = document.getElementById('regEmail');
-  const passwordInput = document.getElementById('regPassword');
-  const usernameInput = document.getElementById('regUsername');
-
-  if (!emailInput || !passwordInput || !usernameInput) {
-    alert('Form tidak ditemukan');
-    return;
-  }
-
-  const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
-  const username = usernameInput.value.trim();
-
-  if (!email || !password || !username) {
-    alert('Semua field wajib diisi');
-    return;
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    alert('Format email tidak valid');
-    return;
-  }
-
-  try {
-    await loadFirebaseSDK();
-
-    if (!window.firebaseAuth || !window.firebaseAuth.auth) {
-      throw new Error('Firebase Auth tidak tersedia');
-    }
-
-    // ✅ Hanya gunakan email dan password
-    const { user } = await window.firebaseAuth.createUserWithEmailAndPassword(
-      email,
-      password
-    );
-
-    const token = await user.getIdToken();
-    localStorage.setItem('firebaseToken', token);
-    localStorage.setItem('userEmail', email);
-
-    alert('Registrasi berhasil!');
-    navigateTo('/');
-  } catch (error) {
-    console.error('Error registrasi:', error);
-    let msg = 'Gagal: ';
-    if (error.code === 'auth/email-already-in-use') {
-      msg += 'Email sudah digunakan';
-    } else if (error.code === 'auth/weak-password') {
-      msg += 'Password terlalu lemah (minimal 6 karakter)';
-    } else {
-      msg += error.message;
-    }
-    alert(msg);
-  }
-}
-
-// === Fungsi: Login User ===
-async function loginUser() {
-  const emailInput = document.getElementById('loginEmail');
-  const passwordInput = document.getElementById('loginPassword');
-
-  if (!emailInput || !passwordInput) {
-    alert('Form login tidak ditemukan');
-    return;
-  }
-
-  const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
-
-  if (!email || !password) {
-    alert('Email dan password wajib diisi');
-    return;
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    alert('Format email tidak valid');
-    return;
-  }
-
-  try {
-    await loadFirebaseSDK();
-
-    if (!window.firebaseAuth || !window.firebaseAuth.auth) {
-      throw new Error('Firebase Auth tidak tersedia');
-    }
-
-    // ✅ Hanya gunakan email dan password
-    const { user } = await window.firebaseAuth.signInWithEmailAndPassword(
-      email,
-      password
-    );
-
-    const token = await user.getIdToken();
-    localStorage.setItem('firebaseToken', token);
-    localStorage.setItem('userEmail', email);
-
-    const unsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
-      if (user) {
-        setTimeout(async () => {
-          await downloadHistoryFromFirestore();
-        }, 200);
-      }
-    });
-
-    alert('Login berhasil!');
-    navigateTo('/');
-  } catch (error) {
-    console.error('Error login:', error);
-    let msg = 'Gagal login: ';
-    if (error.code === 'auth/user-not-found') {
-      msg += 'Email tidak ditemukan';
-    } else if (error.code === 'auth/wrong-password') {
-      msg += 'Password salah';
-    } else if (error.code === 'auth/invalid-email') {
-      msg += 'Email tidak valid';
-    } else {
-      msg += error.message;
-    }
-    alert(msg);
-  }
-}
-
-// === Fungsi: Logout ===
-async function logoutUser() {
-  try {
-    await loadFirebaseSDK();
-    await window.firebaseAuth.signOut();
-    localStorage.removeItem('firebaseToken');
-    alert('Logout berhasil');
-    navigateTo('/');
-  } catch (error) {
-    alert('Gagal logout: ' + error.message);
-  }
-}
-
+// === Update UI Navbar (Ikon Profil Minimalis) ===
 function updateAuthUI() {
-  // Update Desktop Nav
-  const navLinks = document.querySelector('.nav-links');
-  if (navLinks) {
-    // Hapus tombol lama
-    const oldAuth = document.querySelector('.auth-nav-item');
-    if (oldAuth) oldAuth.remove();
+  // Update Desktop Nav (Pojok Kanan Atas)
+  const profileContainer = document.getElementById('profile-button-container');
+  if (profileContainer) {
+    // Hapus konten lama
+    profileContainer.innerHTML = '';
 
-    const li = document.createElement('li');
-    li.classList.add('auth-nav-item');
+    // Buat tombol dengan ikon saja
+    const button = document.createElement('button');
+    button.classList.add('profile-nav-button');
+    button.title = 'Profil Saya'; // Tooltip
+    button.innerHTML = '👤'; // Bisa diganti dengan span jika perlu lebih kompleks
 
-    const a = document.createElement('a');
-    a.href = '#';
-    a.textContent = isLoggedIn() ? 'Profil' : 'Login';
-    a.classList.add('auth-nav-link');
-
-    a.onclick = (e) => {
+    button.onclick = (e) => {
       e.preventDefault();
       navigateTo('/profile');
     };
 
-    li.appendChild(a);
-    navLinks.appendChild(li);
+    profileContainer.appendChild(button);
   }
 
-  // Update Mobile Nav
+  // Update Mobile Nav (Opsional: tetap tampilkan teks di mobile)
   updateMobileNav();
+}
+
+// === Fungsi: Tambah ke Riwayat Tontonan (Hanya localStorage) ===
+function addToWatchHistory(animeId, title, poster, episode = '1') {
+  try {
+    // Validasi input dasar
+    if (!animeId || !title) {
+      console.warn('addToWatchHistory: animeId atau title tidak valid', { animeId, title });
+      return;
+    }
+
+    // Ambil riwayat dari localStorage
+    const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
+    const timestamp = Date.now();
+    
+    // Buat item baru
+    const newItem = { 
+      animeId, 
+      title, 
+      poster: poster?.trim() || null, // Pastikan poster string aman
+      episode: String(episode), // Pastikan episode dalam bentuk string
+      timestamp 
+    };
+
+    // Cek duplikat berdasarkan animeId
+    const existingIndex = history.findIndex(item => item.animeId === animeId);
+    if (existingIndex > -1) {
+      // Update jika sudah ada (misalnya, update nomor episode)
+      history[existingIndex] = newItem;
+    } else {
+      // Tambahkan item baru
+      history.push(newItem);
+    }
+
+    // Urutkan dari yang terbaru
+    history.sort((a, b) => b.timestamp - a.timestamp);
+    // Batasi jumlah item (opsional)
+    localStorage.setItem('watchHistory', JSON.stringify(history.slice(0, 50)));
+    
+    console.log('✅ Riwayat berhasil disimpan:', title);
+  } catch (error) {
+    console.error('❌ Gagal menyimpan riwayat:', error);
+  }
+}
+
+// === Fungsi: Hapus Riwayat Otomatis Setiap 2 Bulan ===
+function cleanupOldHistory() {
+  const now = Date.now();
+  const twoMonthsInMs = 60 * 24 * 60 * 60 * 1000; // 60 hari dalam milidetik
+  const lastCleanup = localStorage.getItem('lastHistoryCleanup');
+
+  // Cek apakah sudah lebih dari 2 bulan sejak pembersihan terakhir
+  if (!lastCleanup || (now - parseInt(lastCleanup)) > twoMonthsInMs) {
+    console.log('🧹 Membersihkan riwayat tontonan yang sudah lebih dari 2 bulan...');
+    
+    const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
+    
+    // Jika tidak ada data, tidak perlu dibersihkan
+    if (history.length === 0) {
+      localStorage.setItem('lastHistoryCleanup', now.toString());
+      return;
+    }
+
+    const cleanedHistory = history.filter(item => {
+      return (now - item.timestamp) <= twoMonthsInMs; // Hanya simpan yang kurang dari 2 bulan
+    });
+
+    // Simpan hanya jika ada perubahan
+    if (cleanedHistory.length !== history.length) {
+      localStorage.setItem('watchHistory', JSON.stringify(cleanedHistory));
+    }
+    
+    localStorage.setItem('lastHistoryCleanup', now.toString()); // Simpan waktu pembersihan terakhir
+    
+    console.log(`✅ Pembersihan selesai. ${cleanedHistory.length} item tersisa.`);
+  }
 }
 
 function renderReportPage() {
