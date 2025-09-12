@@ -379,10 +379,21 @@ async function loadGenreAnime(genreId, page = 1) {
 
 async function loadAnimeDetail(animeId) {
   try {
-    const data = await fetchData(`/anime/${animeId}`);
-    renderAnimeDetail(data);
+    // Pastikan animeId bersih (tanpa trailing slash)
+    const cleanAnimeId = animeId.split('/').pop();
+    const data = await fetchData(`/anime/${cleanAnimeId}`);
+    
+    if (data?.ok && data.data) {
+      // Simpan poster SEBELUM render
+      if (data.data.poster) {
+        localStorage.setItem(`animePoster_${cleanAnimeId}`, data.data.poster.trim());
+      }
+      renderAnimeDetail(data);
+    } else {
+      showErrorMessage('Gagal memuat detail anime.');
+    }
   } catch (error) {
-    showErrorMessage(`Gagal memuat detail anime "${animeId}". Silakan coba lagi nanti.`);
+    showErrorMessage(`Gagal memuat detail anime "${animeId}".`);
   }
 }
 
@@ -395,17 +406,18 @@ async function loadEpisode(episodeId) {
     if (data?.ok && data.data?.animeId) {
       const animeTitle = data.data.info?.title || data.data.title.replace(/ Episode \d+ .*/, '');
       const episodeNumber = data.data.title.match(/Episode (\d+)/)?.[1] || '1';
-      // ✅ Gunakan animeId dari respons API
       const animeId = data.data.animeId;
 
-      // Ambil poster dari info jika tersedia
       let animePoster = null;
-      if (data.data.info?.thumbnail) {
-        animePoster = data.data.info.thumbnail.trim();
+      const storedPoster = localStorage.getItem(`animePoster_${animeId}`);
+      if (storedPoster) {
+        animePoster = storedPoster;
       }
 
-      // ✅ SIMPAN KE LOCAL STORAGE
-      addToWatchHistory(animeId, animeTitle, animePoster, episodeNumber);
+      // Simpan ke history
+      if (isLoggedIn()) {
+        addToWatchHistory(animeId, animeTitle, animePoster, episodeNumber);
+      }
     }
   } catch (error) {
     showErrorMessage(`Gagal memuat episode "${episodeId}".`);
