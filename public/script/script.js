@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   document.body.appendChild(fab);
 
+  
+
   // ✅ TAMPILKAN FAB JIKA SUDAH LOGIN
   function updateFABVisibility() {
     if (isLoggedIn()) {
@@ -666,7 +668,7 @@ function renderAdminPage() {
   if (!isLoggedIn()) {
     contentElement.innerHTML = `
       <div class="error-message">
-        <h2>Harus Login</h2>
+        <h2>🔒 Harus Login</h2>
         <p>Silakan login terlebih dahulu.</p>
         <button onclick="navigateTo('/login')" class="btn">Login Sekarang</button>
       </div>
@@ -677,40 +679,55 @@ function renderAdminPage() {
   if (!isAdmin()) {
     contentElement.innerHTML = `
       <div class="error-message">
-        <h2>Akses Ditolak</h2>
-        <p>Anda tidak memiliki izin untuk mengakses halaman ini.</p>
-        <button onclick="navigateTo('/profile')" class="btn">Kembali ke Profil</button>
+          <h2>🚫 Akses Ditolak</h2>
+          <p>Anda tidak memiliki izin untuk mengakses halaman ini.</p>
+          <button onclick="navigateTo('/profile')" class="btn">Kembali ke Profil</button>
       </div>
     `;
     return;
   }
 
   // Tampilkan dashboard admin
-  contentElement.innerHTML = `
-    <div class="admin-container">
-      <h1>🛠️ Dashboard Admin</h1>
-      
-      <div class="admin-menu">
-        <a href="/report" class="admin-card">
-          <span class="card-icon">📬</span>
-          <h3>Laporan Bug & Saran</h3>
-          <p>Kelola semua laporan dari pengguna</p>
-        </a>
-        
-        <a href="/schedule" class="admin-card">
-          <span class="card-icon">📅</span>
-          <h3>Jadwal Rilis</h3>
-          <p>Atur jadwal tayang anime terbaru</p>
-        </a>
+    contentElement.innerHTML = `
+      <div class="admin-container">
+        <div class="admin-header">
+          <h1>🛠️ Dashboard Admin</h1>
+          <p>Halo, <strong>${localStorage.getItem('userEmail')?.split('@')[0]}</strong>!</p>
+          <button onclick="logoutUser()" class="btn btn-danger">Logout</button>
+        </div>
 
-        <a href="#" class="admin-card" onclick="alert('Fitur dalam pengembangan'); return false;">
-          <span class="card-icon">🎨</span>
-          <h3>Pengaturan Tema</h3>
-          <p>Kustomisasi tampilan situs</p>
-        </a>
+        <div class="admin-info">
+          <p><strong>Email:</strong> ${localStorage.getItem('userEmail')}</p>
+          <p><strong>Status:</strong> Akun Administrator</p>
+          <p><strong>Laporan Bug:</strong> Semua laporan langsung dikirim ke email utama.</p>
+        </div>
+
+        <!-- Fitur Admin -->
+        <div class="admin-menu">
+          <a href="/schedule" class="admin-card">
+            <span class="card-icon">📅</span>
+            <h3>Jadwal Rilis</h3>
+            <p>Kelola anime yang sedang tayang</p>
+          </a>
+          <a href="/report" class="admin-card">
+            <span class="card-icon">📬</span>
+            <h3>Lihat Format Laporan</h3>
+            <p>Pantau format laporan dari pengguna</p>
+          </a>
+          <a href="#" class="admin-card" onclick="alert('Fitur pengaturan akan datang!');">
+            <span class="card-icon">⚙️</span>
+            <h3>Pengaturan Situs</h3>
+            <p>Konfigurasi dasar aplikasi</p>
+          </a>
+        </div>
+
+        <!-- Catatan -->
+        <div class="info-box">
+          <h3>ℹ️ Informasi</h3>
+          <p>Semua laporan bug dan saran dari pengguna dikirim langsung ke email inti via <strong>EmailJS</strong>. Tidak ada data yang disimpan di browser.</p>
+        </div>
       </div>
-    </div>
-  `;
+    `;
 }
 
 // === Fungsi: Render Halaman Riwayat Terpisah ===

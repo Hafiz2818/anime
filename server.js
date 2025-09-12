@@ -99,5 +99,5 @@ app.get('*', (req, res) => {
 // --- Jalankan Server ---
 app.listen(port, '0.0.0.0', () => {
   console.log(`✅ NontonAnime server berjalan di http://localhost:${port}`);
-  console.log(`✅ NontonAnime server berjalan di IpAddress:${port}`)
+  console.log(`✅ NontonAnime server berjalan di Ip-Address:${port}`)
 });
