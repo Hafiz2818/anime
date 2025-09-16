@@ -19,8 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(fab);
 
   
-
-  // ✅ TAMPILKAN FAB JIKA SUDAH LOGIN
   function updateFABVisibility() {
     if (isLoggedIn()) {
       fab.classList.add('show');
@@ -29,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Panggil saat halaman dimuat dan setiap kali status login berubah
   updateFABVisibility();
   window.updateAuthUI = function () {
     updateFABVisibility();
@@ -45,12 +42,10 @@ function isAdmin() {
   return ADMIN_EMAILS.includes(userEmail);
 }
 
-// === Cek apakah user sudah login ===
 function isLoggedIn() {
   return !!localStorage.getItem('firebaseToken');
 }
 
-// === SETUP FIREBASE DINAMIS DI SCRIPT.JS ===
 let firebaseInitialized = false;
 
 function loadFirebaseSDK() {
@@ -83,7 +78,7 @@ function loadFirebaseSDK() {
           };
           const app = firebase.initializeApp(firebaseConfig);
           const auth = firebase.auth();
-          const db = firebase.firestore(); // Inisialisasi Firestore
+          const db = firebase.firestore(); 
 
           window.firebaseAuth = {
             auth,
@@ -114,7 +109,6 @@ function initRouter() {
       e.preventDefault();
       const href = new URL(link.href).pathname;
 
-      // --- SIMPAN URL SAAT INI JIKA MENUJU HALAMAN /report ---
       if (href === '/report') {
         localStorage.setItem('bugReportSourceUrl', window.location.href);
         localStorage.setItem('bugReportSourceTitle', document.title);
@@ -381,12 +375,10 @@ async function loadGenreAnime(genreId, page = 1) {
 
 async function loadAnimeDetail(animeId) {
   try {
-    // Pastikan animeId bersih (tanpa trailing slash)
     const cleanAnimeId = animeId.split('/').pop();
     const data = await fetchData(`/anime/${cleanAnimeId}`);
     
     if (data?.ok && data.data) {
-      // Simpan poster SEBELUM render
       if (data.data.poster) {
         localStorage.setItem(`animePoster_${cleanAnimeId}`, data.data.poster.trim());
       }
@@ -416,7 +408,6 @@ async function loadEpisode(episodeId) {
         animePoster = storedPoster;
       }
 
-      // Simpan ke history
       if (isLoggedIn()) {
         addToWatchHistory(animeId, animeTitle, animePoster, episodeNumber);
       }
@@ -586,14 +577,13 @@ async function loadReportPage() {
   renderReportPage();
 }
 
-// === Fungsi: Render Halaman Profil (Tab History & Tentang) ===
+// === Fungsi: Render Halaman Profil ===
 function renderProfilePage() {
   const contentElement = document.getElementById('content');
 
   if (isLoggedIn()) {
     const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
     const username = userEmail.split('@')[0];
-    // Ambil riwayat langsung dari localStorage
     const history = JSON.parse(localStorage.getItem('watchHistory')) || [];
 
     contentElement.innerHTML = `
@@ -628,12 +618,10 @@ function renderProfilePage() {
       </div>
     `;
 
-    // Setup tab switching
     document.querySelectorAll('.tab-button').forEach(button => {
       button.addEventListener('click', () => {
         const tab = button.getAttribute('data-tab');
 
-        // Update UI tab
         document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
         button.classList.add('active');
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -641,10 +629,8 @@ function renderProfilePage() {
       });
     });
 
-    // Update navbar mobile
     updateMobileNav();
   } else {
-    // Belum login
     contentElement.innerHTML = `
       <div class="profile-container">
         <div class="profile-icon">🔐</div>
@@ -687,7 +673,6 @@ function renderAdminPage() {
     return;
   }
 
-  // Tampilkan dashboard admin
     contentElement.innerHTML = `
       <div class="admin-container">
         <div class="admin-header">
@@ -734,7 +719,6 @@ function renderAdminPage() {
 function renderHistoryPage() {
   const contentElement = document.getElementById('content');
 
-  // Hanya pengguna yang login yang bisa melihat riwayat
   if (!isLoggedIn()) {
     contentElement.innerHTML = `
       <div class="error-message">
@@ -788,21 +772,19 @@ function renderHistoryPage() {
     </div>
   `;
 
-  // Fungsi penghapusan manual
   const deleteItem = (animeId) => {
     const updatedHistory = history.filter(item => item.animeId !== animeId);
     localStorage.setItem('watchHistory', JSON.stringify(updatedHistory));
-    renderHistoryPage(); // Refresh halaman
+    renderHistoryPage(); 
   };
 
   const clearAllHistory = () => {
     if (confirm('Apakah Anda yakin ingin menghapus semua riwayat tontonan?')) {
       localStorage.removeItem('watchHistory');
-      renderHistoryPage(); // Refresh halaman
+      renderHistoryPage(); 
     }
   };
 
-  // Tambahkan ke window agar bisa dipanggil oleh onclick
   window.deleteItem = deleteItem;
   window.clearAllHistory = clearAllHistory;
 }
@@ -1014,7 +996,6 @@ function renderAllAnimePage(animeData, currentPage = 1) {
     return;
   }
 
-  // Gabungkan semua anime
   const allAnimeList = [];
   animeData.data.list.forEach(group => {
     if (group.animeList && group.animeList.length > 0) {
@@ -1312,22 +1293,18 @@ function renderAnimeDetail(data) {
   const totalEpisodes = anime.episodeList ? anime.episodeList.length : 0;
   const totalPages = Math.ceil(totalEpisodes / itemsPerPage);
 
-  // Ambil nomor halaman dari URL (default: 1)
   const urlParams = new URLSearchParams(window.location.search);
   let currentPage = parseInt(urlParams.get('episode_page')) || 1;
-  currentPage = Math.max(1, Math.min(currentPage, totalPages)); // Batasi valid
+  currentPage = Math.max(1, Math.min(currentPage, totalPages)); 
 
-  // Fungsi: Dapatkan episode sesuai halaman
   function getEpisodesForPage(page) {
     const start = (page - 1) * itemsPerPage;
     const end = start + itemsPerPage;
     return anime.episodeList.slice(start, end);
   }
 
-  // Render episode untuk halaman saat ini
   const currentEpisodes = getEpisodesForPage(currentPage);
 
-  // Pagination HTML
   function generatePaginationHTML() {
     if (totalPages <= 1) return '';
 
@@ -1380,7 +1357,6 @@ function renderAnimeDetail(data) {
   `;
   }
 
-  // Generate episodes HTML
   let episodesHTML = '';
   if (anime.episodeList && anime.episodeList.length > 0) {
     episodesHTML = `
@@ -1398,7 +1374,6 @@ function renderAnimeDetail(data) {
     `;
   }
 
-  // Sisanya tetap sama...
   let genresHTML = '';
   if (anime.genreList && anime.genreList.length > 0) {
     genresHTML = anime.genreList.map(genre => `
@@ -1693,8 +1668,6 @@ function renderEpisodePage(data) {
 }
 
 // Fungsi untuk pindah halaman episode
-
-
 function changeServer(serverId) {
   console.log(`Mengganti ke server: ${serverId}`);
   const container = document.querySelector('.video-player');
@@ -1798,23 +1771,19 @@ function updateMobileNav() {
   const path = window.location.pathname;
   const mobileLinks = document.querySelectorAll('.mobile-navbar a');
 
-  // Reset semua active class
   mobileLinks.forEach(link => {
     link.classList.remove('active');
   });
 
-  // Set active untuk halaman saat ini
   mobileLinks.forEach(link => {
     if (link.getAttribute('href') === path) {
       link.classList.add('active');
     }
   });
 
-  // Hapus tombol auth lama jika ada
   const existingAuth = document.querySelector('.mobile-navbar a[href="/profile"]');
   if (existingAuth) existingAuth.remove();
 
-  // Tambahkan tombol Profil/Login
   const authLink = document.createElement('a');
   authLink.href = '/profile';
 
@@ -1835,7 +1804,6 @@ function updateMobileNav() {
 
   document.querySelector('.mobile-navbar').appendChild(authLink);
 
-  // Set active jika di halaman profile
   if (path === '/profile') {
     authLink.classList.add('active');
   }
@@ -1874,19 +1842,16 @@ function renderRegisterPage() {
   `;
 }
 
-// === Update UI Navbar (Ikon Profil Minimalis) ===
+// === Update UI Navbar ===
 function updateAuthUI() {
-  // Update Desktop Nav (Pojok Kanan Atas)
   const profileContainer = document.getElementById('profile-button-container');
   if (profileContainer) {
-    // Hapus konten lama
     profileContainer.innerHTML = '';
 
-    // Buat tombol dengan ikon saja
     const button = document.createElement('button');
     button.classList.add('profile-nav-button');
-    button.title = 'Profil Saya'; // Tooltip
-    button.innerHTML = '👤'; // Bisa diganti dengan span jika perlu lebih kompleks
+    button.title = 'Profil Saya'; 
+    button.innerHTML = '👤'; 
 
     button.onclick = (e) => {
       e.preventDefault();
@@ -1919,10 +1884,9 @@ function updateAuthUI() {
   updateMobileNav();
 }
 
-// === Fungsi: Tambah ke Riwayat Tontonan (Hanya localStorage) ===
+// === Fungsi: Tambah ke Riwayat Tontonan ===
 function addToWatchHistory(animeId, title, poster, episode = '1') {
   try {
-    // Validasi input dasar
     if (!animeId || !title) {
       console.warn('addToWatchHistory: animeId atau title tidak valid', { animeId, title });
       return;
@@ -1936,24 +1900,19 @@ function addToWatchHistory(animeId, title, poster, episode = '1') {
     const newItem = {
       animeId,
       title,
-      poster: poster?.trim() || null, // Pastikan poster string aman
-      episode: String(episode), // Pastikan episode dalam bentuk string
+      poster: poster?.trim() || null, 
+      episode: String(episode), 
       timestamp
     };
 
-    // Cek duplikat berdasarkan animeId
     const existingIndex = history.findIndex(item => item.animeId === animeId);
     if (existingIndex > -1) {
-      // Update jika sudah ada (misalnya, update nomor episode)
       history[existingIndex] = newItem;
     } else {
-      // Tambahkan item baru
       history.push(newItem);
     }
 
-    // Urutkan dari yang terbaru
     history.sort((a, b) => b.timestamp - a.timestamp);
-    // Batasi jumlah item (opsional)
     localStorage.setItem('watchHistory', JSON.stringify(history.slice(0, 50)));
 
     console.log('✅ Riwayat berhasil disimpan:', title);
@@ -1965,10 +1924,9 @@ function addToWatchHistory(animeId, title, poster, episode = '1') {
 // === Fungsi: Hapus Riwayat Otomatis Setiap 2 Bulan ===
 function cleanupOldHistory() {
   const now = Date.now();
-  const twoMonthsInMs = 60 * 24 * 60 * 60 * 1000; // 60 hari dalam milidetik
+  const twoMonthsInMs = 60 * 24 * 60 * 60 * 1000; 
   const lastCleanup = localStorage.getItem('lastHistoryCleanup');
 
-  // Cek apakah sudah lebih dari 2 bulan sejak pembersihan terakhir
   if (!lastCleanup || (now - parseInt(lastCleanup)) > twoMonthsInMs) {
     console.log('🧹 Membersihkan riwayat tontonan yang sudah lebih dari 2 bulan...');
 
@@ -1981,7 +1939,7 @@ function cleanupOldHistory() {
     }
 
     const cleanedHistory = history.filter(item => {
-      return (now - item.timestamp) <= twoMonthsInMs; // Hanya simpan yang kurang dari 2 bulan
+      return (now - item.timestamp) <= twoMonthsInMs; 
     });
 
     // Simpan hanya jika ada perubahan
@@ -1989,7 +1947,7 @@ function cleanupOldHistory() {
       localStorage.setItem('watchHistory', JSON.stringify(cleanedHistory));
     }
 
-    localStorage.setItem('lastHistoryCleanup', now.toString()); // Simpan waktu pembersihan terakhir
+    localStorage.setItem('lastHistoryCleanup', now.toString()); 
 
     console.log(`✅ Pembersihan selesai. ${cleanedHistory.length} item tersisa.`);
   }
@@ -2064,7 +2022,6 @@ function renderReportPage() {
       userAgent: navigator.userAgent
     };
 
-    // Validasi minimal
     if (!formData.reportType || !formData.description) {
       formMessage.innerHTML = '<p class="error">❌ Jenis laporan dan deskripsi wajib diisi.</p>';
       return;
